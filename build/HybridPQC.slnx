@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Solution>
+	<Configurations>
+		<BuildType Name="Debug"/>
+		<BuildType Name="Release"/>
+		<BuildType Name="MinSizeRel"/>
+		<BuildType Name="RelWithDebInfo"/>
+		<Platform Name="x64"/>
+	</Configurations>
+	<Project Path="ALL_BUILD.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="da033008-b353-3162-a3ec-8d0e7ce7f877" DefaultStartup="true">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="aes_gcm_test.vcxproj"/>
+		<BuildDependency Project="client.vcxproj"/>
+		<BuildDependency Project="client_auth.vcxproj"/>
+		<BuildDependency Project="client_auth_phase4.vcxproj"/>
+		<BuildDependency Project="client_auth_phase4_2.vcxproj"/>
+		<BuildDependency Project="client_auth_phase4_3.vcxproj"/>
+		<BuildDependency Project="client_auth_phase4_4.vcxproj"/>
+		<BuildDependency Project="client_auth_phase4_5.vcxproj"/>
+		<BuildDependency Project="client_auth_phase4_6.vcxproj"/>
+		<BuildDependency Project="client_auth_phase4_6_fixed.vcxproj"/>
+		<BuildDependency Project="generate_fake_identity.vcxproj"/>
+		<BuildDependency Project="generate_identity.vcxproj"/>
+		<BuildDependency Project="hybrid_secure_channel.vcxproj"/>
+		<BuildDependency Project="hybrid_test.vcxproj"/>
+		<BuildDependency Project="mlkem_test.vcxproj"/>
+		<BuildDependency Project="protocol.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+		<BuildDependency Project="server.vcxproj"/>
+		<BuildDependency Project="server_auth.vcxproj"/>
+		<BuildDependency Project="server_auth_phase4_6.vcxproj"/>
+		<BuildDependency Project="server_auth_phase4_6_fixed.vcxproj"/>
+		<BuildDependency Project="signature_test.vcxproj"/>
+		<BuildDependency Project="x25519_test.vcxproj"/>
+		<Build Solution="Debug|*" Project="false"/>
+		<Build Solution="Release|*" Project="false"/>
+		<Build Solution="MinSizeRel|*" Project="false"/>
+		<Build Solution="RelWithDebInfo|*" Project="false"/>
+	</Project>
+	<Project Path="ZERO_CHECK.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="89c27386-f88b-39cb-bc0f-dcfdee206eea"/>
+	<Project Path="aes_gcm_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f321e83c-296c-3182-b574-c6f61874567b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="client.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c5e18961-f7b0-33ae-8bc7-7225056b6f68">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol.vcxproj"/>
+	</Project>
+	<Project Path="client_auth.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f251b52d-5f95-3a1e-ad3c-fbd4c9e2b129">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase4.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c8566fae-1650-3627-b982-654498638468">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase4_2.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e759de21-7178-395f-8c83-422ac4be1da2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase4_3.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="5dc6b39a-e2e9-3fa1-91af-5c4bbf42d600">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase4_4.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c611aac6-2b01-314f-9613-c199836f8180">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase4_5.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="18910a03-17ab-3d77-99c4-b9f6eeeab614">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase4_6.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d78d1ce3-b450-3773-9e6a-804014abd408">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase4_6_fixed.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="aa7abd16-4706-3a39-9f0f-5f023ba84b75">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="generate_fake_identity.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a953d715-aab9-32d2-af9b-5c8ad0363955">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="generate_identity.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7492c1cf-be25-3257-bd13-8871a7955abc">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="hybrid_secure_channel.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="0767b7c4-b652-398a-b8f6-b9fb691a8a0a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="hybrid_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9dfd05c2-69b9-3c93-b509-613810d140bb">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="mlkem_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d010649b-5311-31da-a647-792da8eba5c0">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="protocol.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="913bead0-073a-340f-90a0-9df2062dfe3d">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="protocol_auth.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f4aa5cd2-9152-3288-9f5b-1c4861a4df66">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="server.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="94892b35-7ad4-33c3-8b5d-d4ee13d00f20">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol.vcxproj"/>
+	</Project>
+	<Project Path="server_auth.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3f915641-d0d1-33bc-9a8a-587cfcf9bc00">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="server_auth_phase4_6.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="91735924-f1a5-3acc-ba66-4c51108494ea">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="server_auth_phase4_6_fixed.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="87efec47-e06f-39e7-982f-8cffdd853245">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth.vcxproj"/>
+	</Project>
+	<Project Path="signature_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c2f216bf-45c3-3244-8896-c7895d827141">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="x25519_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="acf32401-44c8-368a-9b92-c78510cba0a7">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+</Solution>

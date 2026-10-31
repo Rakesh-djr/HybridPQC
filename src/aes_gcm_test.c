@@ -1,0 +1,414 @@
+#include <stdio.h>
+#include <string.h>
+#include <openssl/evp.h>
+#include <openssl/rand.h>
+#include <openssl/err.h>
+
+#define AES_KEY_LENGTH 32
+#define GCM_NONCE_LENGTH 12
+#define GCM_TAG_LENGTH 16
+
+void print_hex(const char *label, const unsigned char *data, size_t len)
+{
+    printf("%s", label);
+
+    for (size_t i = 0; i < len; i++)
+    {
+        printf("%02X", data[i]);
+    }
+
+    printf("\n");
+}
+
+/*
+ * AES-256-GCM encryption
+ */
+int aes_gcm_encrypt(
+    const unsigned char *plaintext,
+    int plaintext_len,
+    const unsigned char *key,
+    const unsigned char *nonce,
+    unsigned char *ciphertext,
+    unsigned char *tag)
+{
+    EVP_CIPHER_CTX *ctx = NULL;
+    int len = 0;
+    int ciphertext_len = 0;
+
+    ctx = EVP_CIPHER_CTX_new();
+
+    if (ctx == NULL)
+    {
+        printf("ERROR: Could not create encryption context.\n");
+        return 0;
+    }
+
+    /*
+     * Initialize AES-256-GCM
+     */
+    if (EVP_EncryptInit_ex(
+            ctx,
+            EVP_aes_256_gcm(),
+            NULL,
+            NULL,
+            NULL) != 1)
+    {
+        printf("ERROR: AES-GCM initialization failed.\n");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    /*
+     * Set nonce/IV
+     */
+    if (EVP_EncryptInit_ex(
+            ctx,
+            NULL,
+            NULL,
+            key,
+            nonce) != 1)
+    {
+        printf("ERROR: Could not set AES key/nonce.\n");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    /*
+     * Encrypt plaintext
+     */
+    if (EVP_EncryptUpdate(
+            ctx,
+            ciphertext,
+            &len,
+            plaintext,
+            plaintext_len) != 1)
+    {
+        printf("ERROR: Encryption failed.\n");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    ciphertext_len = len;
+
+    /*
+     * Finalize encryption
+     */
+    if (EVP_EncryptFinal_ex(
+            ctx,
+            ciphertext + len,
+            &len) != 1)
+    {
+        printf("ERROR: Encryption finalization failed.\n");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    ciphertext_len += len;
+
+    /*
+     * Get authentication tag
+     */
+    if (EVP_CIPHER_CTX_ctrl(
+            ctx,
+            EVP_CTRL_GCM_GET_TAG,
+            GCM_TAG_LENGTH,
+            tag) != 1)
+    {
+        printf("ERROR: Could not obtain GCM tag.\n");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    return ciphertext_len;
+}
+
+/*
+ * AES-256-GCM decryption
+ */
+int aes_gcm_decrypt(
+    const unsigned char *ciphertext,
+    int ciphertext_len,
+    const unsigned char *key,
+    const unsigned char *nonce,
+    const unsigned char *tag,
+    unsigned char *plaintext)
+{
+    EVP_CIPHER_CTX *ctx = NULL;
+    int len = 0;
+    int plaintext_len = 0;
+
+    ctx = EVP_CIPHER_CTX_new();
+
+    if (ctx == NULL)
+    {
+        printf("ERROR: Could not create decryption context.\n");
+        return 0;
+    }
+
+    /*
+     * Initialize AES-256-GCM
+     */
+    if (EVP_DecryptInit_ex(
+            ctx,
+            EVP_aes_256_gcm(),
+            NULL,
+            NULL,
+            NULL) != 1)
+    {
+        printf("ERROR: AES-GCM decryption initialization failed.\n");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    /*
+     * Set key and nonce
+     */
+    if (EVP_DecryptInit_ex(
+            ctx,
+            NULL,
+            NULL,
+            key,
+            nonce) != 1)
+    {
+        printf("ERROR: Could not set AES key/nonce.\n");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    /*
+     * Decrypt ciphertext
+     */
+    if (EVP_DecryptUpdate(
+            ctx,
+            plaintext,
+            &len,
+            ciphertext,
+            ciphertext_len) != 1)
+    {
+        printf("ERROR: Decryption failed.\n");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    plaintext_len = len;
+
+    /*
+     * Set authentication tag
+     */
+    if (EVP_CIPHER_CTX_ctrl(
+            ctx,
+            EVP_CTRL_GCM_SET_TAG,
+            GCM_TAG_LENGTH,
+            (void *)tag) != 1)
+    {
+        printf("ERROR: Could not set authentication tag.\n");
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    /*
+     * Finalize decryption.
+     *
+     * This verifies the authentication tag.
+     */
+    if (EVP_DecryptFinal_ex(
+            ctx,
+            plaintext + len,
+            &len) <= 0)
+    {
+        printf("ERROR: Authentication failed!\n");
+        printf("Ciphertext may have been modified.\n");
+
+        EVP_CIPHER_CTX_free(ctx);
+        return 0;
+    }
+
+    plaintext_len += len;
+
+    EVP_CIPHER_CTX_free(ctx);
+
+    return plaintext_len;
+}
+
+int main(void)
+{
+    printf("====================================================\n");
+    printf("           AES-256-GCM TEST PROGRAM\n");
+    printf("====================================================\n\n");
+
+    /*
+     * This represents the hybrid session key
+     * generated by X25519 + ML-KEM-768 + HKDF.
+     *
+     * We use a fixed key here only for testing AES-GCM.
+     */
+    unsigned char hybrid_key[AES_KEY_LENGTH] =
+    {
+        0x11, 0x7C, 0x55, 0x74,
+        0xCB, 0xD0, 0xD1, 0x76,
+        0x93, 0xE4, 0xBC, 0x32,
+        0xAE, 0x91, 0xED, 0xBA,
+        0xD7, 0xAF, 0x5B, 0x3E,
+        0xAC, 0x36, 0x0B, 0x6B,
+        0x90, 0xFB, 0x71, 0xA0,
+        0x9D, 0x89, 0xAC, 0xEA
+    };
+
+    const unsigned char plaintext[] =
+        "Hello Bob! This message is protected "
+        "using Hybrid Post-Quantum Cryptography.";
+
+    int plaintext_len = (int)strlen((const char *)plaintext);
+
+    unsigned char nonce[GCM_NONCE_LENGTH];
+    unsigned char ciphertext[1024];
+    unsigned char decrypted[1024];
+    unsigned char tag[GCM_TAG_LENGTH];
+
+    memset(ciphertext, 0, sizeof(ciphertext));
+    memset(decrypted, 0, sizeof(decrypted));
+    memset(tag, 0, sizeof(tag));
+
+    /*
+     * Generate a random 96-bit GCM nonce.
+     *
+     * A fresh nonce should be used for every encryption
+     * when using the same AES-GCM key.
+     */
+    if (RAND_bytes(nonce, GCM_NONCE_LENGTH) != 1)
+    {
+        printf("ERROR: Random nonce generation failed.\n");
+        ERR_print_errors_fp(stderr);
+        return 1;
+    }
+
+    printf("[1] Hybrid session key:\n");
+    print_hex("    Key: ", hybrid_key, AES_KEY_LENGTH);
+
+    printf("\n[2] Generated random GCM nonce:\n");
+    print_hex("    Nonce: ", nonce, GCM_NONCE_LENGTH);
+
+    printf("\n[3] Original plaintext:\n");
+    printf("    %s\n", plaintext);
+
+    /*
+     * Encrypt
+     */
+    printf("\n[4] Encrypting with AES-256-GCM...\n");
+
+    int ciphertext_len = aes_gcm_encrypt(
+        plaintext,
+        plaintext_len,
+        hybrid_key,
+        nonce,
+        ciphertext,
+        tag);
+
+    if (ciphertext_len <= 0)
+    {
+        printf("ERROR: Encryption failed.\n");
+        return 1;
+    }
+
+    printf("    Encryption successful.\n");
+
+    print_hex(
+        "    Ciphertext: ",
+        ciphertext,
+        ciphertext_len);
+
+    print_hex(
+        "    Authentication Tag: ",
+        tag,
+        GCM_TAG_LENGTH);
+
+    /*
+     * Decrypt
+     */
+    printf("\n[5] Bob decrypting the ciphertext...\n");
+
+    int decrypted_len = aes_gcm_decrypt(
+        ciphertext,
+        ciphertext_len,
+        hybrid_key,
+        nonce,
+        tag,
+        decrypted);
+
+    if (decrypted_len <= 0)
+    {
+        printf("ERROR: Decryption failed.\n");
+        return 1;
+    }
+
+    decrypted[decrypted_len] = '\0';
+
+    printf("    Decryption successful.\n");
+    printf("    Decrypted message:\n");
+    printf("    %s\n", decrypted);
+
+    /*
+     * Verify plaintext
+     */
+    printf("\n[6] Verifying decrypted message...\n");
+
+    if (decrypted_len == plaintext_len &&
+        memcmp(
+            plaintext,
+            decrypted,
+            plaintext_len) == 0)
+    {
+        printf("    Original and decrypted messages MATCH.\n");
+    }
+    else
+    {
+        printf("    ERROR: Messages DO NOT MATCH.\n");
+        return 1;
+    }
+
+    /*
+     * Tampering test
+     */
+    printf("\n[7] Testing ciphertext tampering detection...\n");
+
+    /*
+     * Change one byte of ciphertext.
+     */
+    ciphertext[0] ^= 0x01;
+
+    memset(decrypted, 0, sizeof(decrypted));
+
+    int tampered_result = aes_gcm_decrypt(
+        ciphertext,
+        ciphertext_len,
+        hybrid_key,
+        nonce,
+        tag,
+        decrypted);
+
+    if (tampered_result <= 0)
+    {
+        printf("    Tampering detected successfully.\n");
+        printf("    AES-256-GCM rejected the modified ciphertext.\n");
+    }
+    else
+    {
+        printf("    ERROR: Tampered ciphertext was accepted!\n");
+        return 1;
+    }
+
+    printf("\n====================================================\n");
+    printf("          AES-256-GCM TEST SUCCESSFUL!\n");
+    printf("====================================================\n");
+    printf("Encryption                  : SUCCESS\n");
+    printf("Decryption                  : SUCCESS\n");
+    printf("Authentication              : SUCCESS\n");
+    printf("Tampering detection         : SUCCESS\n");
+    printf("AES key size                : 256 bits\n");
+    printf("GCM nonce size              : 96 bits\n");
+    printf("Authentication tag          : 128 bits\n");
+
+    return 0;
+}

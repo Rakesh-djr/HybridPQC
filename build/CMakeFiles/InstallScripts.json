@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/HybridPQC/build/cmake_install.cmake"
+	],
+	"Parallel" : false
+}
