@@ -1,0 +1,11 @@
+run_id,fixed_profile,client_exit_code,hello_to_key_ms,client_complete,server_replay_rejected,client_log,server_log
+1,ML-KEM-512,0,22.073,True,True,results\phase7\real_loss_fixed512_01_client.log,results\phase7\real_loss_fixed512_01_server.log
+2,ML-KEM-512,0,22.881,True,True,results\phase7\real_loss_fixed512_02_client.log,results\phase7\real_loss_fixed512_02_server.log
+3,ML-KEM-512,0,33.665,True,True,results\phase7\real_loss_fixed512_03_client.log,results\phase7\real_loss_fixed512_03_server.log
+4,ML-KEM-512,0,15.824,True,True,results\phase7\real_loss_fixed512_04_client.log,results\phase7\real_loss_fixed512_04_server.log
+5,ML-KEM-512,0,14.964,True,True,results\phase7\real_loss_fixed512_05_client.log,results\phase7\real_loss_fixed512_05_server.log
+6,ML-KEM-512,0,17.902,True,True,results\phase7\real_loss_fixed512_06_client.log,results\phase7\real_loss_fixed512_06_server.log
+7,ML-KEM-512,0,20.054,True,True,results\phase7\real_loss_fixed512_07_client.log,results\phase7\real_loss_fixed512_07_server.log
+8,ML-KEM-512,0,28.605,True,True,results\phase7\real_loss_fixed512_08_client.log,results\phase7\real_loss_fixed512_08_server.log
+9,ML-KEM-512,0,14.607,True,True,results\phase7\real_loss_fixed512_09_client.log,results\phase7\real_loss_fixed512_09_server.log
+10,ML-KEM-512,0,32.788,True,True,results\phase7\real_loss_fixed512_10_client.log,results\phase7\real_loss_fixed512_10_server.log

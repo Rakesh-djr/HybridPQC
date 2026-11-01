@@ -1,0 +1,83 @@
+Phase 7 proxy listening on ('127.0.0.1', 5555); RTT=0.0 ms, bandwidth=0.0 kbps/direction, loss-event holds=0.0%
+connection 1: forwarding to 127.0.0.1:5556
+connection 1: {'timestamp_utc': '2026-10-31T20:48:15.544707+00:00', 'connection_id': 1, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 28.959}
+connection 2: forwarding to 127.0.0.1:5556
+connection 2: {'timestamp_utc': '2026-10-31T20:49:43.082036+00:00', 'connection_id': 2, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 19.667}
+connection 3: forwarding to 127.0.0.1:5556
+connection 3: {'timestamp_utc': '2026-10-31T20:49:43.512408+00:00', 'connection_id': 3, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 21.99}
+connection 4: forwarding to 127.0.0.1:5556
+connection 4: {'timestamp_utc': '2026-10-31T20:49:44.039947+00:00', 'connection_id': 4, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 19.542}
+connection 5: forwarding to 127.0.0.1:5556
+connection 5: {'timestamp_utc': '2026-10-31T20:49:44.516320+00:00', 'connection_id': 5, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 28.621}
+connection 6: forwarding to 127.0.0.1:5556
+connection 6: {'timestamp_utc': '2026-10-31T20:49:45.069323+00:00', 'connection_id': 6, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 54.414}
+connection 7: forwarding to 127.0.0.1:5556
+connection 7: {'timestamp_utc': '2026-10-31T20:49:45.652183+00:00', 'connection_id': 7, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 24.465}
+connection 8: forwarding to 127.0.0.1:5556
+connection 8: {'timestamp_utc': '2026-10-31T20:49:46.421742+00:00', 'connection_id': 8, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 340.085}
+connection 9: forwarding to 127.0.0.1:5556
+connection 9: {'timestamp_utc': '2026-10-31T20:49:46.867492+00:00', 'connection_id': 9, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 20.092}
+connection 10: forwarding to 127.0.0.1:5556
+connection 10: {'timestamp_utc': '2026-10-31T20:49:47.341883+00:00', 'connection_id': 10, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 23.2}
+connection 11: forwarding to 127.0.0.1:5556
+connection 11: {'timestamp_utc': '2026-10-31T20:49:48.088374+00:00', 'connection_id': 11, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 321.745}
+connection 12: forwarding to 127.0.0.1:5556
+connection 12: {'timestamp_utc': '2026-10-31T20:50:18.915144+00:00', 'connection_id': 12, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 23.807}
+connection 13: forwarding to 127.0.0.1:5556
+connection 13: {'timestamp_utc': '2026-10-31T20:50:19.404031+00:00', 'connection_id': 13, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 24.465}
+connection 14: forwarding to 127.0.0.1:5556
+connection 14: {'timestamp_utc': '2026-10-31T20:50:19.980327+00:00', 'connection_id': 14, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 35.605}
+connection 15: forwarding to 127.0.0.1:5556
+connection 15: {'timestamp_utc': '2026-10-31T20:50:20.443518+00:00', 'connection_id': 15, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 17.271}
+connection 16: forwarding to 127.0.0.1:5556
+connection 16: {'timestamp_utc': '2026-10-31T20:50:20.880184+00:00', 'connection_id': 16, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 15.829}
+connection 17: forwarding to 127.0.0.1:5556
+connection 17: {'timestamp_utc': '2026-10-31T20:50:21.735764+00:00', 'connection_id': 17, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 329.351}
+connection 18: forwarding to 127.0.0.1:5556
+connection 18: {'timestamp_utc': '2026-10-31T20:50:22.166098+00:00', 'connection_id': 18, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 22.156}
+connection 19: forwarding to 127.0.0.1:5556
+connection 19: {'timestamp_utc': '2026-10-31T20:50:22.663465+00:00', 'connection_id': 19, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 32.42}
+connection 20: forwarding to 127.0.0.1:5556
+connection 20: {'timestamp_utc': '2026-10-31T20:50:23.089634+00:00', 'connection_id': 20, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 16.461}
+connection 21: forwarding to 127.0.0.1:5556
+connection 21: {'timestamp_utc': '2026-10-31T20:50:23.576160+00:00', 'connection_id': 21, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1097, 'server_to_client_bytes': 4119, 'duration_ms': 34.093}
+connection 22: forwarding to 127.0.0.1:5556
+connection 22: {'timestamp_utc': '2026-10-31T20:50:27.825502+00:00', 'connection_id': 22, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 17.991}
+connection 23: forwarding to 127.0.0.1:5556
+connection 23: {'timestamp_utc': '2026-10-31T20:50:28.632115+00:00', 'connection_id': 23, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 341.176}
+connection 24: forwarding to 127.0.0.1:5556
+connection 24: {'timestamp_utc': '2026-10-31T20:50:29.388479+00:00', 'connection_id': 24, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 325.151}
+connection 25: forwarding to 127.0.0.1:5556
+connection 25: {'timestamp_utc': '2026-10-31T20:50:29.899977+00:00', 'connection_id': 25, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 22.028}
+connection 26: forwarding to 127.0.0.1:5556
+connection 26: {'timestamp_utc': '2026-10-31T20:50:30.430446+00:00', 'connection_id': 26, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 17.554}
+connection 27: forwarding to 127.0.0.1:5556
+connection 27: {'timestamp_utc': '2026-10-31T20:50:30.855323+00:00', 'connection_id': 27, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 18.649}
+connection 28: forwarding to 127.0.0.1:5556
+connection 28: {'timestamp_utc': '2026-10-31T20:50:31.466715+00:00', 'connection_id': 28, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 35.967}
+connection 29: forwarding to 127.0.0.1:5556
+connection 29: {'timestamp_utc': '2026-10-31T20:50:31.907313+00:00', 'connection_id': 29, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 19.677}
+connection 30: forwarding to 127.0.0.1:5556
+connection 30: {'timestamp_utc': '2026-10-31T20:50:32.345323+00:00', 'connection_id': 30, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 22.511}
+connection 31: forwarding to 127.0.0.1:5556
+connection 31: {'timestamp_utc': '2026-10-31T20:50:32.809456+00:00', 'connection_id': 31, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1481, 'server_to_client_bytes': 4439, 'duration_ms': 20.258}
+connection 32: forwarding to 127.0.0.1:5556
+connection 32: {'timestamp_utc': '2026-10-31T20:50:36.750956+00:00', 'connection_id': 32, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 39.847}
+connection 33: forwarding to 127.0.0.1:5556
+connection 33: {'timestamp_utc': '2026-10-31T20:50:37.354906+00:00', 'connection_id': 33, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 36.632}
+connection 34: forwarding to 127.0.0.1:5556
+connection 34: {'timestamp_utc': '2026-10-31T20:50:37.943146+00:00', 'connection_id': 34, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 29.74}
+connection 35: forwarding to 127.0.0.1:5556
+connection 35: {'timestamp_utc': '2026-10-31T20:50:39.418277+00:00', 'connection_id': 35, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 1057.465}
+connection 36: forwarding to 127.0.0.1:5556
+connection 36: {'timestamp_utc': '2026-10-31T20:50:40.362712+00:00', 'connection_id': 36, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 338.546}
+connection 37: forwarding to 127.0.0.1:5556
+connection 37: {'timestamp_utc': '2026-10-31T20:50:40.874013+00:00', 'connection_id': 37, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 23.474}
+connection 38: forwarding to 127.0.0.1:5556
+connection 38: {'timestamp_utc': '2026-10-31T20:50:41.407711+00:00', 'connection_id': 38, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 15.011}
+connection 39: forwarding to 127.0.0.1:5556
+connection 39: {'timestamp_utc': '2026-10-31T20:50:42.139185+00:00', 'connection_id': 39, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 328.16}
+connection 40: forwarding to 127.0.0.1:5556
+connection 40: {'timestamp_utc': '2026-10-31T20:50:42.705233+00:00', 'connection_id': 40, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 72.873}
+connection 41: forwarding to 127.0.0.1:5556
+connection 41: {'timestamp_utc': '2026-10-31T20:50:43.215462+00:00', 'connection_id': 41, 'rtt_ms': 0.0, 'bandwidth_kbps_per_direction': 0.0, 'loss_event_percent': 0.0, 'loss_recovery_ms': 200.0, 'loss_holds': 0, 'client_to_server_bytes': 1865, 'server_to_client_bytes': 4919, 'duration_ms': 22.804}

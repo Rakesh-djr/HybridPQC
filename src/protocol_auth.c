@@ -14,6 +14,7 @@ static int is_valid_packet_type(uint8_t type)
 {
     return type == PACKET_CLIENT_HELLO ||
            type == PACKET_SERVER_HELLO ||
+           type == PACKET_REPLAY_RESULT ||
            type == PACKET_ENCRYPTED_MESSAGE;
 }
 
@@ -23,14 +24,35 @@ static int is_valid_payload_length(uint8_t type, uint32_t length)
     switch (type)
     {
         case PACKET_CLIENT_HELLO:
+#if defined(PHASE6_KEM_ADAPTIVE)
+            return length == X25519_PUBLIC_KEY_SIZE + 1 + 800 ||
+                   length == X25519_PUBLIC_KEY_SIZE + 1 + 1184 ||
+                   length == X25519_PUBLIC_KEY_SIZE + 1 + 1568;
+#else
             return length == CLIENT_HELLO_SIZE;
+#endif
 
         case PACKET_SERVER_HELLO:
+#if defined(PHASE6_KEM_ADAPTIVE)
+            return length == X25519_PUBLIC_KEY_SIZE + 1 + 768 + 1 +
+                               AUTH_SIGNATURE_LENGTH_SIZE +
+                               MLDSA65_SIGNATURE_SIZE ||
+                   length == X25519_PUBLIC_KEY_SIZE + 1 + 1088 + 1 +
+                               AUTH_SIGNATURE_LENGTH_SIZE +
+                               MLDSA65_SIGNATURE_SIZE ||
+                   length == X25519_PUBLIC_KEY_SIZE + 1 + 1568 + 1 +
+                               AUTH_SIGNATURE_LENGTH_SIZE +
+                               MLDSA65_SIGNATURE_SIZE;
+#else
             return length == SERVER_HELLO_AUTH_SIZE;
+#endif
 
         case PACKET_ENCRYPTED_MESSAGE:
             return length >= (GCM_NONCE_SIZE + GCM_TAG_SIZE + 1) &&
                    length <= MAX_MESSAGE_SIZE;
+
+        case PACKET_REPLAY_RESULT:
+            return length == REPLAY_RESULT_PAYLOAD_SIZE;
 
         default:
             return 0;

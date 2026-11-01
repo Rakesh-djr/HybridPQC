@@ -1,0 +1,2 @@
+ed49259a18bbf12424ea79fb31844da7f87c0d38d3b67677a69a53fbb8f8eedb *BeanNetworkTester-v0.8.0-windows-x64.zip
+9f879d671942ca57ef86d1de16828b2c480417c8d34d2d36eb396c69db89c874 *BeanNetworkTester-v0.8.0-windows-x64.msi

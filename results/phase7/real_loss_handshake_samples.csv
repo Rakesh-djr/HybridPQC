@@ -1,0 +1,11 @@
+run_id,selected_profile,client_exit_code,client_connect_ms,hello_to_key_ms,handshake_completed,server_replay_rejected,loss_percentage,client_log,server_log
+1,ML-KEM-768,0,1.781,17.933,True,True,see emulator aggregate report,results\phase7\real_loss_01_client.log,results\phase7\real_loss_01_server.log
+2,ML-KEM-768,0,2.403,15.043,True,True,see emulator aggregate report,results\phase7\real_loss_02_client.log,results\phase7\real_loss_02_server.log
+3,ML-KEM-768,0,1.924,18.087,True,True,see emulator aggregate report,results\phase7\real_loss_03_client.log,results\phase7\real_loss_03_server.log
+4,ML-KEM-768,0,2.592,27.017,True,True,see emulator aggregate report,results\phase7\real_loss_04_client.log,results\phase7\real_loss_04_server.log
+5,ML-KEM-768,0,7.197,51.315,True,True,see emulator aggregate report,results\phase7\real_loss_05_client.log,results\phase7\real_loss_05_server.log
+6,ML-KEM-768,0,1.979,20.704,True,True,see emulator aggregate report,results\phase7\real_loss_06_client.log,results\phase7\real_loss_06_server.log
+7,ML-KEM-768,0,1.637,333.860,True,True,see emulator aggregate report,results\phase7\real_loss_07_client.log,results\phase7\real_loss_07_server.log
+8,ML-KEM-768,0,1.445,16.811,True,True,see emulator aggregate report,results\phase7\real_loss_08_client.log,results\phase7\real_loss_08_server.log
+9,ML-KEM-768,0,2.121,19.165,True,True,see emulator aggregate report,results\phase7\real_loss_09_client.log,results\phase7\real_loss_09_server.log
+10,ML-KEM-768,0,1.490,319.585,True,True,see emulator aggregate report,results\phase7\real_loss_10_client.log,results\phase7\real_loss_10_server.log

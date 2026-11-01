@@ -1,0 +1,60 @@
+
+===============================================
+   PHASE 4.5 AES-GCM SECURITY TEST CLIENT
+===============================================
+[PHASE6_POLICY] Selected ML-KEM-768 (ID 2), estimated handshake 5.726 ms
+
+[+] Bob's trusted ML-DSA-65 public key loaded
+[+] Alice X25519 key pair generated
+[+] Alice selected ML-KEM profile key pair generated
+[+] Connected to Bob
+[PHASE5_STAGE] Send CLIENT_HELLO: 0.059 ms
+[+] CLIENT_HELLO sent
+[PHASE5_STAGE] Receive SERVER_HELLO: 7.622 ms
+[+] Authenticated SERVER_HELLO received
+[+] ML-DSA-65 signature extracted
+[+] Authentication transcript reconstructed
+[PHASE5_STAGE] ML-DSA-65 verification: 0.227 ms
+[+] Bob ML-DSA-65 signature VERIFIED
+[+] Bob's identity authenticated
+[PHASE5_STAGE] selected ML-KEM profile decapsulation: 0.083 ms
+[+] selected ML-KEM profile shared secret derived
+[PHASE5_STAGE] X25519 shared-secret derivation: 0.125 ms
+[+] X25519 shared secret derived
+[PHASE8_METRIC] provider_lookup_ms: 0.007800
+[PHASE8_METRIC] qkd_hkdf_combine_ms: 0.157200
+[PHASE8] QKD simulator key combined with X25519 + ML-KEM; not real QKD
+[PHASE5_STAGE] HKDF-SHA-384: 0.403 ms
+[+] Hybrid session key derived
+[PHASE5] TCP connect latency: 1.239 ms
+[PHASE5] CLIENT_HELLO send through authenticated session-key ready: 8.543 ms
+[PHASE5] TCP connect plus authenticated handshake: 9.781 ms
+[PHASE5] Client main-thread cycles during connect and handshake: 6263744
+
+===============================================
+       PHASE 4.6 FIXED REPLAY TEST
+       REPLAY / FRESHNESS PROTECTION
+===============================================
+[+] AES-256-GCM ciphertext generated with sequence number 0.
+[+] Sequence number authenticated as AES-GCM AAD.
+[+] Protected payload constructed: 123 bytes
+
+[TEST] Sending original packet with sequence 0...
+[+] Original protected packet sent.
+
+[TEST] Replaying EXACT SAME protected packet...
+[TEST] Sequence 0, nonce, ciphertext and tag remain unchanged.
+[TEST] No new encryption is performed.
+[PHASE8] Server authenticated replay rejection confirmed
+[!] Replay packet was transmitted over TCP.
+
+===============================================
+       PHASE 4.6 CLIENT TEST COMPLETE
+===============================================
+[+] Sequence number authenticated as GCM AAD.
+[+] Original sequence: 0
+[+] Exact replay sequence: 0
+[+] Server's session-key HMAC confirms sequence 0 was rejected as stale.
+===============================================
+[PHASE5] Client peak working set: 9977856 bytes
+[PHASE5] Client private usage: 2940928 bytes

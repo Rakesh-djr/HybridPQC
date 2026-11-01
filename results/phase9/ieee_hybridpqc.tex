@@ -1,0 +1,305 @@
+\documentclass[journal]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+\usepackage{graphicx}
+
+\title{Authenticated and Crypto-Agile Hybrid Post-Quantum Cryptography for Secure Data Transmission: Security Validation and Performance Evaluation}
+
+\author{Rakesh~Puttala,\\
+Department of Computer Science and Engineering,\\
+Indian Institute of Information Technology Sri City\\
+% Add the author's official institutional email before submission.
+}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Post-quantum migration requires secure key establishment while accounting for larger handshake messages, implementation cost, and changing network constraints. This paper describes a Windows research prototype of an authenticated hybrid channel combining ephemeral X25519 and NIST ML-KEM for key establishment, ML-DSA-65 server authentication, HKDF-SHA-384 key derivation, and AES-256-GCM application protection. The prototype adds a deterministic policy selector for ML-KEM-512, ML-KEM-768, and ML-KEM-1024. It applies a configured minimum profile and uses recorded end-to-end handshake measurements with an optional operator-supplied bandwidth estimate. The evaluation includes primitive benchmarks, profile-specific handshake measurements, a latency and bandwidth grid, a scoped packet-loss session, and a randomized paired comparison with a simulated QKD key provider. In a 5\% packet-loss configuration, the emulator reported 19 drops among 355 scoped packets (5.35\% aggregate loss); all 40 handshakes completed and passed server replay checks. In 20 paired runs per condition, the QKD-simulator mean handshake time exceeded the baseline by 0.0859 ms, a difference small relative to run-to-run variation. The QKD input is a public fixed fixture, and the policy does not consume live RTT or loss telemetry. Results are local prototype measurements, not production guarantees or a formal security proof.
+\end{abstract}
+
+\begin{IEEEkeywords}
+post-quantum cryptography, crypto-agility, ML-KEM, ML-DSA, hybrid key establishment, network performance, replay protection, QKD abstraction.
+\end{IEEEkeywords}
+
+\section{Introduction}
+\IEEEPARstart{T}{he} security of present-day network protocols depends on public-key mechanisms for key establishment and authentication. Shor's quantum algorithm showed that sufficiently capable fault-tolerant quantum computers could solve the integer-factorization and discrete-logarithm problems underlying widely deployed public-key systems \cite{shor1994}. This observation motivated the study of post-quantum cryptography (PQC): cryptographic mechanisms designed to run on classical computers while resisting known classical and quantum attacks. Bernstein \emph{et al.} systematized this field and its candidate families, but secure deployment requires more than selecting an algorithm: protocol composition, authentication, message sizes, implementation behavior, and network cost also matter \cite{bernstein2009}.
+
+The first strand directly relevant to this project is hybrid key establishment. Dowling \emph{et al.} proposed a framework for analyzing hybrid exchanges that combine classical and post-quantum contributions, giving a formal foundation for migration designs that retain more than one source of key material \cite{dowling2020}. Their work addresses composition and security definitions; an implementation still must make concrete choices about negotiation, transcript binding, authentication, framing, and measurements. Celi \emph{et al.} then implemented and measured KEMTLS and related post-quantum handshake alternatives, showing that authentication architecture and handshake design affect deployment and performance \cite{celi2021}. Their focus is TLS/KEMTLS, while the present work studies a smaller custom TCP channel using signature-based ML-DSA server authentication. Bruckner \emph{et al.}'s Muckle+ construction further develops modular hybrid authenticated key exchange and formalizes end-to-end authenticity for hybrid components \cite{bruckner2023}. It supplies a formal construction perspective; the present prototype is an implementation study and does not claim a corresponding proof.
+
+A second strand integrates post-quantum and quantum key sources into secure network protocols. Rubio Garc\'ia \emph{et al.} investigated quantum-resistant TLS with post-quantum and QKD key sources, including a transport-layer approach for optical networks \cite{rubio2024tls,rubio2024ofc}. Ricci \emph{et al.} studied a three-source classical/PQ/QKD key combiner, with security analysis and FPGA implementation \cite{ricci2024}. The supplied base paper by Rubio Garc\'ia \emph{et al.} extends this direction by integrating classical cryptography, PQC, and QKD into TLS and IPsec and evaluating the design with a physical QKD testbed \cite{rubio2025}. These results establish that multi-source integration is feasible and already an active research area. They also set the right boundary for this project: our QKD component is a simulated provider interface, not a physical QKD integration, and our custom channel is not a TLS or IPsec implementation. ETSI's hybrid key-exchange specification likewise provides standardized guidance for combining key-establishment inputs \cite{etsi103744}.
+
+A third strand measures the cost of post-quantum handshakes under different implementations and network conditions. Kampanakis and Childs-Klein examine how data-heavy post-quantum TLS affects time-to-last-byte, extending evaluation beyond handshake completion \cite{kampanakis2024}. Zheng \emph{et al.} optimize ML-KEM implementation paths and assess their effects on TLS performance \cite{zheng2024}. Souvatzidaki and Limniotis evaluate post-quantum key exchange in TLS 1.3 under emulated packet-loss conditions \cite{souvatzidaki2025}. Collectively, these studies show that algorithm microbenchmarks, handshake latency, application delivery, and recovery under loss are distinct metrics. Their TLS implementations, hardware, network topologies, and timing boundaries differ from this project's local custom-channel measurements, so raw timing values cannot be ranked directly against ours.
+
+Finally, standardization makes parameter choice concrete. NIST standardized ML-KEM in FIPS 203 and ML-DSA in FIPS 204 in 2024 \cite{nist203,nist204}. NIST's crypto-agility guidance treats migration and replacement as a system and lifecycle capability, not simply a fast algorithm-selection operation \cite{nistAgility}. This motivates the prototype's explicit minimum-profile policy: measured speed or bandwidth must not override the configured security floor.
+
+\subsection{Problem, Scope, and Research Gap}
+Existing work already covers formal hybrid exchange, PQC/QKD integration, protocol deployment, packet-loss studies, and implementation optimization. Therefore, this paper does not claim that hybrid cryptography, QKD integration, network testing, or crypto-agility is new. The narrower engineering question is how to connect end-to-end measurements of multiple standardized ML-KEM profiles to an explicit policy with a server-enforced minimum, and then observe that policy in an authenticated prototype under controlled local latency, bandwidth, and packet-loss conditions. A second implementation question is how to expose a QKD key-source boundary and test its agreement and failure behavior without claiming physical QKD.
+
+The extension is deliberately bounded. It uses pilot medians and an optional operator-supplied bandwidth estimate; it does not measure live RTT, packet loss, or interface capacity and should not be described as autonomous real-time adaptation. It uses a custom framed TCP channel with a pre-provisioned server signing key, not TLS, IPsec, a certificate PKI, or a formally analyzed AKE. Its reported results are local experimental evidence, not production guarantees.
+
+\subsection{Objectives and Contributions}
+This study asks: (1) how do ML-KEM profile sizes and primitive costs relate to full authenticated-handshake measurements in this implementation; (2) how do configured latency, bandwidth, and packet loss affect handshake completion and policy choice; and (3) what provider boundary and failure behavior are needed to test an optional QKD input? Its contributions are an implemented X25519/ML-KEM hybrid key-establishment channel with ML-DSA-65 server authentication; replay protection using a sequence value authenticated as AES-GCM associated data; a deterministic ML-KEM-512/768/1024 policy selector with a configurable minimum; pilot benchmarks and controlled network-condition measurements; and a QKD simulator path with fail-closed missing-key behavior. The work contributes an engineering evaluation and reproducible measurements, not a new primitive, formal security proof, or physical QKD system.
+
+\subsection{Research Lineage and Gap Summary}
+Table~\ref{tab:literature} follows the progression from the quantum threat and PQC foundations to hybrid protocol analysis, measured implementations, QKD integration, and the present prototype. The gap column is scoped to the implementation questions of this study; it does not imply that cited work omitted topics outside its own goals.
+
+\begin{table*}[t]
+\caption{Research progression and the scope of the present prototype}
+\label{tab:literature}
+\centering
+\footnotesize
+\begin{tabular}{p{0.10\textwidth}p{0.23\textwidth}p{0.28\textwidth}p{0.21\textwidth}}
+\toprule
+Period and strand & Representative study & Finding or contribution & Relation and bounded gap addressed here \\
+\midrule
+1994--2009: quantum threat and PQC foundations & Shor \cite{shor1994}; Bernstein \emph{et al.} \cite{bernstein2009} & Quantum algorithms threaten conventional public-key assumptions; PQC formalizes classical algorithms intended to resist quantum attacks. & Establishes the reason for migration; does not itself specify this project's channel, runtime profile policy, or measurement procedure. \\
+2020--2023: hybrid exchange and authentication & Dowling \emph{et al.} \cite{dowling2020}; Celi \emph{et al.} \cite{celi2021}; Bruckner \emph{et al.} \cite{bruckner2023} & Develops security frameworks and constructions for hybrid key exchange and measures alternative post-quantum handshake/authentication designs. & This prototype implements a small signed channel and policy experiment; it is not a formal AKE construction, TLS, or KEMTLS. \\
+2024--2025: network and QKD integration & Rubio \emph{et al.} \cite{rubio2024tls,rubio2024ofc,rubio2025}; Ricci \emph{et al.} \cite{ricci2024}; ETSI \cite{etsi103744} & Demonstrates or specifies hybrid classical/PQ/QKD integration, including optical/TLS approaches, a physical QKD testbed, and an FPGA combiner. & This paper evaluates only a simulator provider seam; it does not reproduce the physical QKD or standardized TLS/IPsec deployments. \\
+2024--2025: performance and network behavior & Kampanakis and Childs-Klein \cite{kampanakis2024}; Zheng \emph{et al.} \cite{zheng2024}; Souvatzidaki and Limniotis \cite{souvatzidaki2025} & Measures post-quantum TLS application delivery, implementation optimization, and loss-related effects. & The present local study separates primitive time, handshake readiness, hello bytes, controlled proxy conditions, and one aggregate packet-loss session; conditions are not directly comparable. \\
+2024--2026: standards and transition policy & NIST FIPS 203/204 \cite{nist203,nist204}; NIST crypto-agility guidance \cite{nistAgility} & Standardizes ML-KEM/ML-DSA and frames cryptographic transition as a planned system capability. & This prototype implements a local minimum-profile policy, not fleet-wide inventory, automated migration, or continuous telemetry-driven control. \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+\section{Related Work}
+The literature above establishes three boundaries for interpreting the results. First, formal hybrid-exchange security claims in \cite{dowling2020,bruckner2023} should not be inferred from successful prototype handshakes. Second, TLS, IPsec, optical-QKD, and FPGA results in \cite{rubio2024tls,rubio2024ofc,ricci2024,rubio2025} provide related deployment evidence but use different protocols and equipment. Third, the performance metrics in \cite{kampanakis2024,zheng2024,souvatzidaki2025} motivate broader evaluation but do not provide directly comparable numbers for this custom TCP framing and loopback testbed. Accordingly, this paper reports its own measurement definitions and avoids cross-paper performance rankings.
+
+\section{Protocol and Policy Design}
+\subsection{Architecture Components and Their Roles}
+The design follows the supplied architecture's client/server model (Alice and Bob). Each technology has one defined job in the channel; one primitive does not substitute for another.
+\begin{table}[t]
+\caption{Cryptographic component placement in the channel}
+\label{tab:components}
+\centering
+\footnotesize
+\begin{tabular}{p{0.17\columnwidth}p{0.34\columnwidth}p{0.34\columnwidth}}
+\toprule
+Component & Role & Use in the session \\
+\midrule
+X25519 & Classical ephemeral key agreement \cite{rfc7748} & Each endpoint derives a 32-byte shared secret from its ephemeral key and peer public key. \\
+ML-KEM-512/768/1024 & Standardized post-quantum KEM \cite{nist203} & Client creates profile-sized public key; server encapsulates; client decapsulates to obtain a 32-byte secret. \\
+ML-DSA-65 & Standardized post-quantum signature \cite{nist204} & Server signs the encoded handshake transcript; client verifies with a provisioned trusted public key. \\
+HKDF-SHA-384 & Key derivation \cite{rfc5869} & Derives a 32-byte application key from the ordered X25519 and ML-KEM secrets, with protocol and profile context. \\
+AES-256-GCM & Authenticated encryption \cite{nistGcm} & Protects application plaintext; each record includes a 12-byte nonce and 16-byte tag, with the sequence number as AAD. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Authenticated Hybrid Channel}
+The client creates ephemeral X25519 and ML-KEM key pairs for the selected profile. Its \texttt{CLIENT\_HELLO} carries a profile identifier, the X25519 public key, and the ML-KEM public key. The server validates framing, profile identifier, exact KEM field lengths, and its configured minimum profile. It creates an ephemeral X25519 key pair, derives the X25519 secret using X25519 \cite{rfc7748}, and encapsulates to the client's ML-KEM public key. The server constructs a transcript from the handshake values and signs it with ML-DSA-65. The client verifies the signature against a provisioned trusted server public key, checks the echoed profile identifier, decapsulates the ML-KEM ciphertext, and derives the X25519 secret.
+
+The baseline key schedule combines the 32-byte X25519 secret and the 32-byte ML-KEM secret, with profile and protocol context, and derives a 256-bit AES key using HKDF-SHA-384 \cite{rfc5869}. The profile and transcript binding prevent a peer from treating a profile byte or handshake value as an unauthenticated selection. Application messages use AES-256-GCM with a 96-bit nonce and 128-bit authentication tag \cite{nistGcm}. An eight-byte sequence value is authenticated as associated data, and the receiver rejects stale values before accepting plaintext. AEAD integrity alone does not prevent replay of a previously valid ciphertext; freshness state is also needed.
+
+Authentication is server-to-client. The trust anchor is provisioned out of band; certificate chains, certificate-authority validation, and mutual client authentication are outside the prototype. The channel is custom and is not TLS.
+
+\subsection{Policy Selection}
+The policy accepts a minimum ML-KEM profile, an optional latency ceiling, an objective (latency or bandwidth), and an optional available-bandwidth estimate. Profiles below the floor or above the estimated latency ceiling are filtered out. The latency objective selects the eligible profile with the lowest estimated time, while the bandwidth objective selects the smallest hello exchange. The transfer component is
+\begin{equation}
+  T_{\mathrm{transfer}}(p) = \frac{8 B_{\mathrm{hello}}(p)}{R_{\mathrm{kbps}}} \;\mathrm{ms},
+\end{equation}
+where $B_{\mathrm{hello}}(p)$ is the measured application-protocol size of both hello messages and $R_{\mathrm{kbps}}$ is the operator-supplied rate. The latency calibration is a small pilot median table from the same machine. The implemented formula adds an estimated hello-transfer component to the measured loopback median; this is a simple policy heuristic, not a calibrated physical network model, and may partly overlap the transfer cost already represented in the loopback pilot. It is deterministic policy selection, not machine learning. It does not ingest live RTT, packet-loss, or current interface-throughput telemetry.
+
+The server applies its minimum independently and rejects a profile below that floor. The client-selected profile is echoed by the server, included in the signed transcript, and used in the HKDF context. A server accepts one client-selected profile per session rather than sending a complete supported-profile list.
+
+\subsection{QKD Provider Abstraction}
+Separate Phase 8 builds request an opaque key identifier from a local provider interface. The simulator returns the same fixed public test value to both endpoints. The QKD-mode key schedule combines length-delimited X25519, ML-KEM, and provider inputs and binds the authenticated handshake transcript hash. The server returns a session-key HMAC result after the replay check, which the client verifies. A required-QKD handshake aborts when provider material is absent. The simulator's one-use state is process-local and resets on restart; it provides no quantum-generated entropy, physical distribution, authenticated key-management service, or durable anti-reuse property.
+
+\subsection{End-to-End Session Workflow}
+The phases fit together as a single session path. (1) The client policy filters out ML-KEM profiles below its configured minimum and, when provided, outside its latency constraint; it then selects by the chosen latency or bandwidth objective using the pilot measurements. (2) The client creates ephemeral X25519 and selected-profile ML-KEM key pairs and sends a framed hello containing the profile identifier and public keys. (3) The server independently validates framing, field lengths, profile support, and its own minimum security floor. (4) The server performs X25519 and ML-KEM key establishment, constructs the handshake transcript, signs the transcript with ML-DSA-65, and returns the response and ciphertext. (5) The client verifies the server signature and profile echo before deriving the same hybrid session key with the transcript and profile context. (6) Application records use AES-256-GCM; sequence state provides freshness/replay rejection. (7) In the separate QKD experiment, the provider interface supplies an additional key input; missing required material causes an abort. The simulator exercises this interface and error path, but does not produce quantum-derived material.
+
+This order is security-relevant. Policy may choose among allowed profiles, but the server floor remains an independent constraint. Authentication binds the peer identity and selected handshake values, while HKDF context binds key derivation to the protocol and profile. Replay checks enforce freshness after cryptographic integrity verification. The policy itself is not a substitute for authentication or protocol downgrade analysis.
+
+\subsection{Cryptographic and Policy Equations}
+For the standard hybrid mode, both endpoints derive 32-byte component secrets $S_X$ (X25519) and $S_K$ (ML-KEM). The implementation concatenates these fixed-length values in a fixed order and supplies them as the input keying material to HKDF-SHA-384. With no explicit salt configured in the standard-mode call, the HKDF salt uses the RFC 5869 default. The profile identifier and protocol label are supplied as context:
+\begin{align}
+  \mathrm{IKM} &= S_X \parallel S_K, \\
+  \mathrm{PRK} &= \mathrm{HKDF\mbox{-}Extract}_{\mathrm{SHA384}}(\mathrm{salt},\mathrm{IKM}), \\
+  K_{\mathrm{session}} &= \mathrm{HKDF\mbox{-}Expand}_{\mathrm{SHA384}}
+      (\mathrm{PRK},\mathrm{info}_{\mathrm{protocol}}\parallel\mathrm{id}_{\mathrm{profile}},32).
+\end{align}
+The resulting 32-byte key is used by AES-256-GCM. The signed handshake transcript contains the negotiated profile and public handshake values. In the separate QKD-simulator build, the provider inputs are length-prefixed before concatenation, a SHA-384 transcript hash is included as another KDF input, and the provider-specific context string is used. This simulator path is distinct from standard mode and uses a fixed public fixture.
+
+For an application record with plaintext $P_i$, nonce $N_i$, and 64-bit big-endian sequence number $i$, the sender computes
+\begin{equation}
+  (C_i,T_i)=\mathrm{AES\mbox{-}256\mbox{-}GCM.Enc}
+       (K_{\mathrm{session}},N_i,P_i,\mathrm{AAD}=\mathrm{BE64}(i)),
+\end{equation}
+where $C_i$ is ciphertext and $T_i$ is the authentication tag. The receiver requires $i=i_{\mathrm{expected}}$ before decryption, verifies the GCM tag, releases plaintext only on successful verification, and increments the expected value after acceptance. GCM integrity detects modification; the sequence-state rule supplies the tested freshness/replay check.
+
+Let $p$ be an ML-KEM profile, $m_p$ the recorded pilot median handshake latency, $B_p$ the measured total bytes in the two framed hello messages, $R$ the operator-supplied rate in kbit/s, and $L_{\max}$ an optional latency ceiling. The estimated transfer component is
+\begin{equation}
+  t_{\mathrm{transfer}}(p,R)=\frac{8B_p}{R}\;\mathrm{ms},
+\end{equation}
+with $t_{\mathrm{transfer}}=0$ when no bandwidth estimate is supplied. The policy's estimated score is $\hat{t}_p=m_p+t_{\mathrm{transfer}}$. First it forms the eligible set
+\begin{equation}
+  \mathcal{P}_{\mathrm{eligible}}=\{p:\ p\geq p_{\min},\ \hat{t}_p\leq L_{\max}\},
+\end{equation}
+where the ceiling constraint is omitted if none is configured. The latency objective chooses $\arg\min_{p\in\mathcal{P}_{\mathrm{eligible}}}\hat{t}_p$; the bandwidth objective chooses the eligible profile with minimum $B_p$. If the set is empty, selection fails closed. Profile ordering represents configured policy tiers and is not a claim that the numeric labels alone constitute an independently assessed security certification.
+
+For $n$ observations $x_j$, the reported arithmetic mean, sample standard deviation, and throughput are
+\begin{align}
+  \bar{x}&=\frac{1}{n}\sum_{j=1}^{n}x_j, &
+  s&=\sqrt{\frac{1}{n-1}\sum_{j=1}^{n}(x_j-\bar{x})^2},\\
+  \mathrm{Throughput}_{\mathrm{MB/s}}&=\frac{\mathrm{bytes\ processed}}{10^6\,t_{\mathrm{seconds}}}.
+\end{align}
+Medians are reported alongside means where timing distributions contain outliers. These are descriptive summaries; the small pilot sample sizes do not establish broad population estimates.
+
+\section{Implementation and Experimental Method}
+\subsection{Implementation}
+The prototype is written in C11 and built with CMake and Visual Studio on Windows. OpenSSL 3.6.4 provides X25519, HKDF-SHA-384, AES-256-GCM, and random-byte generation. A local static liboqs build provides ML-KEM and ML-DSA. Winsock TCP sockets carry the custom framed messages. Python scripts orchestrate repeated trials and summarize CSV/JSON outputs. A local TCP proxy adds configured RTT and rate-limits byte streams. Bean Network Tester v0.8.0 provided the separate packet-level drop condition.
+
+The measured host was an Intel Core Ultra 5 125H system (14 cores, 18 logical processors), Windows build 26300, Visual Studio 18 Release build, OpenSSL 3.6.4, and a local static liboqs build. Installed RAM capacity was not captured. The compiler emitted a liboqs optimization-barrier warning, and linking emitted a C runtime mismatch warning between static liboqs and OpenSSL. Accordingly, no constant-time implementation claim is made.
+
+\subsection{Technology Stack and Placement}
+\begin{table}[t]
+\caption{Software and experimental technologies}
+\label{tab:technology}
+\centering
+\footnotesize
+\begin{tabular}{p{0.24\columnwidth}p{0.60\columnwidth}}
+\toprule
+Technology & Specific use in this project \\
+\midrule
+C11, MSVC/Visual Studio 18 & Implements client, server, message framing, security tests, benchmark utilities; Release build on Windows. \\
+CMake & Generates the native build targets for fixed-profile, adaptive, benchmark, and QKD-simulator variants. \\
+OpenSSL 3.6.4 & Supplies X25519, HKDF-SHA-384, AES-256-GCM, cryptographic random bytes, and digest operations. \\
+liboqs (static local build) & Supplies ML-KEM and ML-DSA operations and profile-specific public-key/ciphertext sizes. \\
+Winsock TCP & Carries length-framed client/server handshake and application messages over TCP. \\
+Python 3 scripts & Orchestrate repeated trials and summarize run logs into CSV/JSON results. \\
+Local TCP proxy & Applies configured round-trip delay and per-direction bandwidth pacing; its hold mode delays intact stream chunks and is not packet loss. \\
+Bean Network Tester v0.8.0 & Applies the separate scoped packet-level drop condition used for the aggregate loss experiment. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Measurement Definitions}
+The main handshake timer starts immediately before the client sends \texttt{CLIENT\_HELLO} and stops when the client has verified the signed server response and derived its session key. It excludes process startup, client ML-KEM key generation before the timer, and application data. TCP connect is measured separately. Replay rejection occurs after the main handshake timer. This differs from TLS studies that may include TCP setup or use time-to-first-byte/time-to-last-byte; numerical comparisons across those methodologies are not valid.
+
+The Phase 5 baseline used ten runs. Primitive measurements used three process runs and batched operations. Fixed-profile Phase 6 handshakes used three runs per profile. Each point in the Phase 7 expanded latency/bandwidth grid used three runs. The valid packet-loss session ran ten adaptive trials plus ten fixed-profile trials for each profile during one continuous 90-second emulator session. Phase 8 used twenty randomized baseline/simulator pairs. These sample sizes are pilot-scale, particularly the three-run profile and grid comparisons.
+
+\subsection{Evaluation Questions and Measurement Interpretation}
+The experiments are organized around three comparisons. First, primitive benchmarks estimate the cost of individual operations, while the end-to-end handshake timer captures their combined effect with framing, signing, verification, socket I/O, scheduling, and local initialization. Second, the fixed-profile and policy runs test whether profile size and the supplied bandwidth estimate affect the selected profile and observed handshake time. Third, the impairment and QKD-simulator experiments test robustness and integration behavior under the particular configured conditions. The expected direction is that larger KEM profiles carry larger public keys/ciphertexts, while no strict ordering of complete handshake times is assumed because the operation mix and system noise also contribute.
+
+All reported means and medians are descriptive summaries of the recorded samples. The three-trial profile and grid points are exploratory and too small to support strong population-level inference. The twenty-pair QKD comparison is reported as a paired difference with its observed variation, rather than treating the two conditions as independent samples. A successful handshake count is a protocol outcome; it is not by itself evidence of resistance to every attack or of WAN reliability.
+
+\subsection{Network Conditions}
+The TCP proxy introduces configured RTT and per-direction bandwidth limits. Its 100-ms hold condition delays intact TCP stream chunks and is not packet loss. The packet-level loss experiment used a narrowed process, loopback, and backend-port scope. The final emulator report recorded 355 scoped packets with 19 drops, for 5.35\% effective loss over the combined run. It did not independently measure loss per profile or collect retransmission counters.
+
+\section{Results}
+\subsection{Phases 1--4: Foundation and Security Validation}
+The architecture document reports PASS for transcript tampering, wrong server identity, ML-KEM ciphertext modification, X25519 public-key modification, AES-GCM ciphertext modification, and the sequence-number replay-protection test; it also records that the earlier baseline accepted an exact replay. The current project archive contains the test variants but not the original per-case Phase 1--4 logs. The table therefore distinguishes documented outcomes from results that can be independently recomputed from retained logs. Later retained Phase 5--8 logs confirm server-side replay rejection, and Phase 6 logs confirm rejection below the server's minimum profile.
+\begin{table}[t]
+\caption{Phase 4 security scenarios and evidence status}
+\label{tab:security}
+\centering
+\footnotesize
+\begin{tabular}{p{0.36\columnwidth}p{0.50\columnwidth}}
+\toprule
+Scenario & Mechanism and evidence status \\
+\midrule
+Transcript/signature modification & ML-DSA verification should fail; architecture records PASS, but original case log is absent. \\
+Wrong server identity & Signature checked against provisioned trusted ML-DSA key; architecture records PASS, original case log absent. \\
+ML-KEM ciphertext modification & Changes the decapsulated component secret; authenticated handshake/key agreement should fail; architecture records PASS, original case log absent. \\
+X25519 public-key modification & Changes the derived X25519 secret; hybrid key confirmation should fail; architecture records PASS, original case log absent. \\
+AES-GCM ciphertext modification & Tag verification should fail; architecture records PASS, original case log absent. \\
+Replay before sequence state & Baseline accepted exact replay per architecture document. \\
+Replay after sequence state & Stale sequence rejected; retained later phase logs confirm replay rejection. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phase 5: Baseline and Primitive Performance}
+Ten baseline loopback trials produced a mean client \texttt{CLIENT\_HELLO}-to-session-key time of 8.73 ms (median 8.71 ms, sample SD 0.61 ms). Mean TCP connect time was 2.02 ms (median 1.68 ms), and mean connect-plus-handshake time was 10.75 ms. All ten server logs confirmed replay rejection.
+
+Across three primitive runs, mean ML-KEM-768 key generation, encapsulation, and decapsulation times were 51.05, 56.20, and 67.98 $\mu$s. Mean ML-DSA-65 key generation, signing, and verification times were 172.58, 578.33, and 150.85 $\mu$s. HKDF-SHA-384 averaged 6.10 $\mu$s with a reused context. AES-GCM effective encryption throughput was 67.1 MB/s for 64-byte payloads, 912.9 MB/s for 1-KiB payloads, and 3,413.8 MB/s for 16-KiB payloads. These throughput estimates exclude nonce generation and network overhead.
+
+The Phase 5 ML-KEM-768 two-hello application-protocol exchange was 5,660 bytes, including 12 bytes of framing. TCP/IP headers, acknowledgements, segmentation, and retransmissions are excluded. Mean client/server peak working sets were 9.52/9.49 MiB; mean private usage was 2.83/2.84 MiB. Prewarming crypto initialization reduced median handshake time from 9.95 ms to 2.78 ms in a process-per-run experiment. Because the server restarted for each sample, this is a prewarmed-process comparison, not a persistent-server steady-state result.
+
+\subsection{Phase 6: ML-KEM Profiles and Policy}
+Table~\ref{tab:profile} gives the profile sizes and fixed-profile handshake results. All nine handshakes and replay checks passed. ML-KEM-512 had the smallest sizes and lowest primitive times, but ML-KEM-768 had the lowest three-run handshake median. Thus, primitive timing alone did not predict complete-handshake ranking.
+
+\begin{table}[t]
+\caption{ML-KEM Profile Sizes and Three-Run Handshake Results}
+\label{tab:profile}
+\centering
+\footnotesize
+\begin{tabular}{lrrrrr}
+\toprule
+Profile & PK (B) & CT (B) & Hello total (B) & Median (ms) & Success \\
+\midrule
+ML-KEM-512  & 800  & 768  & 4,958 & 6.267 & 3/3 \\
+ML-KEM-768  & 1,184& 1,088& 5,662 & 5.726 & 3/3 \\
+ML-KEM-1024 & 1,568& 1,568& 6,526 & 6.931 & 3/3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The adaptive integration selected ML-KEM-768 by default, ML-KEM-512 for a bandwidth objective with minimum 512, and ML-KEM-1024 when the minimum was 1024. A client selecting ML-KEM-512 was rejected when the server minimum was 768. These were one-off integration checks, not the three-run profile medians. The profile identifier and field lengths were validated, and the profile was bound into the signed transcript and HKDF context.
+
+\subsection{Phase 7: Latency, Bandwidth, and Loss}
+The initial proxy experiment produced median handshake times of 13.339 ms at baseline, 114.508 ms with 80-ms configured RTT, and 173.468 ms at 512 kbps per direction under the default policy. At 512 kbps, supplying the bandwidth input caused selection of ML-KEM-512 and a median of 108.360 ms. Holding each intact stream chunk for 100 ms produced a 228.705-ms median. Each condition had three runs and all handshakes/replay checks passed. The hold case is a delay approximation, not a packet drop.
+
+In the expanded grid, three-run medians were 61.990 ms at 40-ms RTT and 187.670 ms at 160-ms RTT. At 256 kbps, the no-bandwidth-input policy selected ML-KEM-768 and measured 206.258 ms; the bandwidth-aware policy selected ML-KEM-512 and measured 183.563 ms. At 2,048 kbps it selected ML-KEM-512 and measured 44.003 ms; at 100,000 kbps it selected ML-KEM-768 and measured 34.528 ms. All 18 grid handshakes completed and passed replay checks.
+
+The packet-level loss session recorded 19 drops among 355 scoped packets (5.35\% aggregate effective loss). All 40 trials passed the client handshake and server replay check. The adaptive policy selected ML-KEM-768 in all ten adaptive trials. Table~\ref{tab:loss} reports per-condition handshake summaries. The emulator's effective loss rate is combined across the forty trials, not a per-profile estimate. Long-tail times were observed, but TCP retransmission counters were not collected; therefore causation is not attributed to retransmission.
+
+\begin{table}[t]
+\caption{Handshake Results During One Combined Packet-Loss Session}
+\label{tab:loss}
+\centering
+\footnotesize
+\begin{tabular}{lrrrr}
+\toprule
+Condition & $n$ & Median (ms) & Mean $\pm$ SD (ms) & >200 ms \\
+\midrule
+Adaptive (selected 768) & 10 & 19.934 & 83.952 $\pm$ 128.424 & 2/10 \\
+Fixed ML-KEM-512 & 10 & 21.063 & 22.336 $\pm$ 7.138 & 0/10 \\
+Fixed ML-KEM-768 & 10 & 19.862 & 82.068 $\pm$ 130.244 & 2/10 \\
+Fixed ML-KEM-1024 & 10 & 29.843 & 162.414 $\pm$ 327.049 & 2/10 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Phase 8: Simulated QKD Provider}
+The simulator passed matching-key agreement, missing-ID rejection, reuse rejection within one provider process, and mismatched-key derivation checks. Integrated empty-pool tests on either endpoint failed closed. In twenty randomized pairs per condition, all 20 baseline and all 20 simulator handshakes succeeded; both conditions selected ML-KEM-768. Baseline median and mean handshake times were 8.8795 and 9.9504 ms (SD 2.4462 ms). Simulator median and mean were 8.8995 and 10.0363 ms (SD 2.5806 ms). The paired mean difference was +0.0859 ms, with paired-difference SD 2.7759 ms. This is small relative to observed run-to-run variation. The simulated provider lookup median was 0.00785 ms and QKD-mode HKDF-combine median was 0.1399 ms; these figures are not representative of QKD equipment or a key-management service.
+
+\section{Discussion}
+Three findings are supported within the limits of this testbed. First, post-quantum profile selection changes both primitive cost and message size, but complete-handshake timing includes authentication, X25519, KDF work, packet I/O, and first-use initialization. Second, providing a bandwidth estimate can select a smaller KEM profile and reduce a measured local median in the tested low-bandwidth cases, subject to a configured minimum. Third, the simulator integration adds negligible measured cost in this setup because it uses an in-memory fixture; it demonstrates interface and failure behavior rather than QKD performance.
+
+The distinction between policy and telemetry is essential to interpreting the claimed crypto-agility. The client adapts its choice to configured inputs and recorded pilot data, but does not measure live network conditions. A next version should collect trusted RTT, loss, and available-bandwidth estimates, make decisions under an explicit policy state machine, and log both the decision inputs and selected profile. The server-side security floor should remain authoritative. Profile-byte mutation and downgrade tests should also be added before asserting downgrade resistance.
+
+\section{Limitations and Threats to Validity}
+The custom protocol has not received formal analysis or independent review. The client authenticates only the server using a pre-provisioned public key; there is no certificate chain or mutual authentication. Phase 1--4 historical run logs for the individual mutation tests are absent, although the test variants are in the source tree. Most profile and grid points use three trials. The packet-loss percentage is aggregate for one mixed session, and retransmissions were not directly counted. All network measurements are local loopback/proxy measurements on one host and do not represent WANs, real clients, or production traffic. The QKD key is public test data. The compiler optimization-barrier warning and runtime mismatch prevent constant-time claims and make the benchmark configuration less suitable for definitive comparative claims. Installed RAM capacity and a source revision hash were not recorded.
+
+\section{Conclusion and Future Work}
+This paper presented a policy-selection and measurement prototype for an authenticated hybrid post-quantum channel. The implementation combines X25519 and ML-KEM for key establishment, authenticates the server with ML-DSA-65, derives AES-256-GCM keys with HKDF-SHA-384, and demonstrates replay rejection. It selects among three ML-KEM profiles under an explicit minimum and an optional bandwidth input, evaluates local latency/bandwidth/loss conditions, and tests a simulated QKD provider boundary. Measurements support the feasibility of the prototype, not a production security or performance guarantee.
+
+Future work is to archive and repeat the Phase 4 negative tests; run independent per-profile packet-loss trials at several rates with retransmission counters; increase sample sizes and randomize profile experiments; implement measured live telemetry and policy decision logging; benchmark a persistent server; resolve compiler and runtime warnings; and replace the fixture only through an authenticated real QKD key-management integration. A standard TLS integration and external protocol review would be necessary before considering deployment.
+
+\begin{thebibliography}{99}
+\bibitem{shor1994} P. W. Shor, ``Algorithms for quantum computation: Discrete logarithms and factoring,'' in \emph{Proc. 35th Annu. Symp. Foundations of Computer Science (FOCS)}, 1994, pp. 124--134, doi: 10.1109/SFCS.1994.365700.
+\bibitem{bernstein2009} D. J. Bernstein, J. Buchmann, and E. Dahmen, Eds., \emph{Post-Quantum Cryptography}. Berlin, Germany: Springer, 2009, doi: 10.1007/978-3-540-88702-7.
+\bibitem{dowling2020} B. Dowling, T. B. Hansen, and K. G. Paterson, ``Many a mickle makes a muckle: A framework for provably quantum-secure hybrid key exchange,'' in \emph{Post-Quantum Cryptography (PQCrypto 2020)}, ser. Lecture Notes in Computer Science, vol. 12100. Cham, Switzerland: Springer, 2020, pp. 483--502, doi: 10.1007/978-3-030-44223-1\_26.
+\bibitem{celi2021} S. Celi \emph{et al.}, ``Implementing and measuring KEMTLS,'' in \emph{Progress in Cryptology -- LATINCRYPT 2021}, ser. Lecture Notes in Computer Science, vol. 12912. Cham, Switzerland: Springer, 2021, pp. 88--107, doi: 10.1007/978-3-030-88238-9\_5.
+\bibitem{bruckner2023} S. Bruckner, S. Ramacher, and C. Striecks, ``Muckle+: End-to-end hybrid authenticated key exchanges,'' in \emph{Post-Quantum Cryptography (PQCrypto 2023)}, ser. Lecture Notes in Computer Science, vol. 14154. Cham, Switzerland: Springer, 2023, pp. 601--633, doi: 10.1007/978-3-031-40003-2\_22.
+\bibitem{kampanakis2024} P. Kampanakis and W. Childs-Klein, ``The impact of data-heavy, post-quantum TLS 1.3 on the time-to-last-byte of real-world connections,'' in \emph{Proc. Network and Distributed System Security (NDSS) Symp., Workshop on Measurements, Attacks, and Defenses for the Web (MADWeb)}, 2024, doi: 10.14722/madweb.2024.23010.
+\bibitem{rubio2024tls} C. Rubio Garc\'ia, S. Rommel, S. Takarabt, J. J. Vegas Olmos, S. Guilley, P. Nguyen, and I. Tafur Monroy, ``Quantum-resistant Transport Layer Security,'' \emph{Computer Communications}, vol. 213, pp. 345--358, 2024, doi: 10.1016/j.comcom.2023.11.010.
+\bibitem{ricci2024} S. Ricci, P. Dobias, L. Malina, J. Hajny, and P. Jedlicka, ``Hybrid keys in practice: Combining classical, quantum and post-quantum cryptography,'' \emph{IEEE Access}, vol. 12, pp. 23206--23219, 2024, doi: 10.1109/ACCESS.2024.3364520.
+\bibitem{rubio2024ofc} C. Rubio Garc\'ia, A. Cano Aguilera, J. J. Vegas Olmos, S. Rommel, and I. Tafur Monroy, ``Integrating quantum key distribution into TLS 1.3: A transport layer approach to quantum-resistant communications in optical networks,'' in \emph{Proc. Optical Fiber Communication Conf. (OFC)}, 2024, paper Th3B.3, doi: 10.1364/OFC.2024.Th3B.3.
+\bibitem{zheng2024} J. Zheng \emph{et al.}, ``Faster post-quantum TLS 1.3 based on ML-KEM: Implementation and assessment,'' arXiv:2404.13544, 2024. [Online]. Available: \url{https://arxiv.org/abs/2404.13544}
+\bibitem{souvatzidaki2025} K. Souvatzidaki and K. Limniotis, ``Post-quantum key exchange in TLS 1.3: Further analysis on performance of new cryptographic standards,'' \emph{Cryptography}, vol. 9, no. 4, Art. no. 73, 2025, doi: 10.3390/cryptography9040073.
+\bibitem{rubio2025} C. Rubio Garc\'ia, A. Cano Aguilera, C. Stan, J. J. Vegas Olmos, S. Rommel, and I. Tafur Monroy, ``Enhanced network security protocols for the quantum era: Combining classical and post-quantum cryptography, and quantum key distribution,'' \emph{IEEE Journal on Selected Areas in Communications}, vol. 43, no. 8, pp. 2765--2781, 2025, doi: 10.1109/JSAC.2025.3568011.
+\bibitem{etsi103744} European Telecommunications Standards Institute, ``CYBER; Quantum-safe hybrid key exchanges,'' ETSI TS 103 744 V1.1.1, 2020. [Online]. Available: \url{https://www.etsi.org/deliver/etsi_ts/103700_103799/103744/01.01.01_60/ts_103744v010101p.pdf}
+\bibitem{nist203} National Institute of Standards and Technology, ``Module-lattice-based key-encapsulation mechanism standard,'' FIPS PUB 203, Aug. 2024, doi: 10.6028/NIST.FIPS.203.
+\bibitem{nist204} National Institute of Standards and Technology, ``Module-lattice-based digital signature standard,'' FIPS PUB 204, Aug. 2024, doi: 10.6028/NIST.FIPS.204.
+\bibitem{nistAgility} E. Barker \emph{et al.}, ``Considerations for achieving crypto agility: Strategies and practices,'' National Institute of Standards and Technology, NIST Cybersecurity White Paper CSWP 39-upd1, 2026, doi: 10.6028/NIST.CSWP.39-upd1.
+\bibitem{rfc7748} A. Langley, M. Hamburg, and S. Turner, ``Elliptic curves for security,'' RFC 7748, Internet Engineering Task Force, Jan. 2016, doi: 10.17487/RFC7748.
+\bibitem{rfc5869} H. Krawczyk and P. Eronen, ``HMAC-based extract-and-expand key derivation function (HKDF),'' RFC 5869, Internet Engineering Task Force, May 2010, doi: 10.17487/RFC5869.
+\bibitem{nistGcm} M. Dworkin, ``Recommendation for block cipher modes of operation: Galois/Counter Mode (GCM) and GMAC,'' NIST Special Publication 800-38D, Nov. 2007, doi: 10.6028/NIST.SP.800-38D.
+\end{thebibliography}
+\end{document}

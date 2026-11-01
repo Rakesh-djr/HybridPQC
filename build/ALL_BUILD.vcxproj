@@ -214,6 +214,26 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{AA7ABD16-4706-3A39-9F0F-5F023BA84B75}</Project>
       <Name>client_auth_phase4_6_fixed</Name>
     </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\client_auth_phase6_1024.vcxproj">
+      <Project>{EB92DE9C-2EEC-3AAC-8175-847D702DF2EF}</Project>
+      <Name>client_auth_phase6_1024</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\client_auth_phase6_512.vcxproj">
+      <Project>{C14D7E27-07AF-36CB-8AB1-8E472D1DEBE5}</Project>
+      <Name>client_auth_phase6_512</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\client_auth_phase6_768.vcxproj">
+      <Project>{3C5BCB90-31E3-343B-AFCE-18BC086A5717}</Project>
+      <Name>client_auth_phase6_768</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\client_auth_phase6_adaptive.vcxproj">
+      <Project>{678AE14C-4633-38C7-AB29-5F24BA22F81A}</Project>
+      <Name>client_auth_phase6_adaptive</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\client_auth_phase8_qkd.vcxproj">
+      <Project>{9B37160C-CEF8-3DDC-BF4F-76E986BBB28A}</Project>
+      <Name>client_auth_phase8_qkd</Name>
+    </ProjectReference>
     <ProjectReference Include="C:\HybridPQC\build\generate_fake_identity.vcxproj">
       <Project>{A953D715-AAB9-32D2-AF9B-5C8AD0363955}</Project>
       <Name>generate_fake_identity</Name>
@@ -234,6 +254,22 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
       <Project>{D010649B-5311-31DA-A647-792DA8EBA5C0}</Project>
       <Name>mlkem_test</Name>
     </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\phase6_crypto_policy.vcxproj">
+      <Project>{6AFA4990-2F18-37E1-B475-9345981276C2}</Project>
+      <Name>phase6_crypto_policy</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\phase6_policy_demo.vcxproj">
+      <Project>{E9FC81EB-9E2F-395D-B980-756FEBA8C55A}</Project>
+      <Name>phase6_policy_demo</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\phase8_qkd_demo.vcxproj">
+      <Project>{7F1DB156-1C3A-31CD-A9CF-6803E4895985}</Project>
+      <Name>phase8_qkd_demo</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\primitive_benchmark.vcxproj">
+      <Project>{8659F6CB-9562-3A39-8A2D-AEEC35DC4049}</Project>
+      <Name>primitive_benchmark</Name>
+    </ProjectReference>
     <ProjectReference Include="C:\HybridPQC\build\protocol.vcxproj">
       <Project>{913BEAD0-073A-340F-90A0-9DF2062DFE3D}</Project>
       <Name>protocol</Name>
@@ -241,6 +277,22 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ProjectReference Include="C:\HybridPQC\build\protocol_auth.vcxproj">
       <Project>{F4AA5CD2-9152-3288-9F5B-1C4861A4DF66}</Project>
       <Name>protocol_auth</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\protocol_auth_phase6_1024.vcxproj">
+      <Project>{AC1DEA22-C7E0-3544-96E9-D28AC022F3C6}</Project>
+      <Name>protocol_auth_phase6_1024</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\protocol_auth_phase6_512.vcxproj">
+      <Project>{D11F563E-D251-32A5-B17F-52D4F7D6E77B}</Project>
+      <Name>protocol_auth_phase6_512</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\protocol_auth_phase6_768.vcxproj">
+      <Project>{536FECB5-CC0B-3B4A-BF80-659542F7151A}</Project>
+      <Name>protocol_auth_phase6_768</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\protocol_auth_phase6_adaptive.vcxproj">
+      <Project>{FC81583B-E107-3BA6-9BFF-BF2904322CAC}</Project>
+      <Name>protocol_auth_phase6_adaptive</Name>
     </ProjectReference>
     <ProjectReference Include="C:\HybridPQC\build\server.vcxproj">
       <Project>{94892B35-7AD4-33C3-8B5D-D4EE13D00F20}</Project>
@@ -257,6 +309,34 @@ if %errorlevel% neq 0 goto :VCEnd</Command>
     <ProjectReference Include="C:\HybridPQC\build\server_auth_phase4_6_fixed.vcxproj">
       <Project>{87EFEC47-E06F-39E7-982F-8CFFDD853245}</Project>
       <Name>server_auth_phase4_6_fixed</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\server_auth_phase4_6_warmup.vcxproj">
+      <Project>{6B80574C-A6CB-36F3-B038-09C5DDECF67B}</Project>
+      <Name>server_auth_phase4_6_warmup</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\server_auth_phase6_1024.vcxproj">
+      <Project>{6290D364-3111-3866-B4D3-A6227DF59282}</Project>
+      <Name>server_auth_phase6_1024</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\server_auth_phase6_512.vcxproj">
+      <Project>{BF96676A-C535-366A-BA77-5048D840549C}</Project>
+      <Name>server_auth_phase6_512</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\server_auth_phase6_768.vcxproj">
+      <Project>{AF114482-89EE-3587-BE87-65E6853640DE}</Project>
+      <Name>server_auth_phase6_768</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\server_auth_phase6_adaptive.vcxproj">
+      <Project>{D4ACEF76-7F6F-3CBF-8F2F-D1E663F62BD4}</Project>
+      <Name>server_auth_phase6_adaptive</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\server_auth_phase7_backend.vcxproj">
+      <Project>{847FA003-D1F9-3642-A38E-4D16B81949C1}</Project>
+      <Name>server_auth_phase7_backend</Name>
+    </ProjectReference>
+    <ProjectReference Include="C:\HybridPQC\build\server_auth_phase8_qkd.vcxproj">
+      <Project>{342370A3-D62B-3F00-B21C-7B923FC6CDA3}</Project>
+      <Name>server_auth_phase8_qkd</Name>
     </ProjectReference>
     <ProjectReference Include="C:\HybridPQC\build\signature_test.vcxproj">
       <Project>{C2F216BF-45C3-3244-8896-C7895D827141}</Project>

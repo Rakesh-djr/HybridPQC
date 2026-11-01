@@ -1,6 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "protocol_auth.h"
+#include "crypto_policy.h"
+#ifdef PHASE8_QKD_SIMULATOR
+#include "qkd_key_provider.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +12,8 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
+#include <psapi.h>
 
 #include <oqs/oqs.h>
 
@@ -15,12 +21,15 @@
 #include <openssl/kdf.h>
 #include <openssl/core_names.h>
 #include <openssl/err.h>
+#include <openssl/hmac.h>
 
 /* ============================================================
    Configuration
    ============================================================ */
 
+#ifndef SERVER_PORT
 #define SERVER_PORT 5555
+#endif
 
 #define SERVER_MLDSA_SECRET_KEY_FILE \
     "C:\\HybridPQC\\keys\\server_mldsa_secret.key"
@@ -240,8 +249,65 @@ cleanup:
 static int derive_hybrid_session_key(
     const unsigned char *x25519_secret,
     const unsigned char *mlkem_secret,
+    uint8_t kem_profile_id,
+#ifdef PHASE8_QKD_SIMULATOR
+    const unsigned char *transcript,
+    size_t transcript_length,
+#endif
     unsigned char *session_key)
 {
+#ifdef PHASE8_QKD_SIMULATOR
+    static qkd_simulator_pool provider_pool = {0};
+    unsigned char qkd_secret[QKD_KEY_BYTES] = {0};
+    unsigned char transcript_hash[48] = {0};
+    unsigned int transcript_hash_length = 0;
+    size_t qkd_secret_length = 0;
+    int result = -1;
+    LARGE_INTEGER provider_start, provider_finish;
+    LARGE_INTEGER combine_start, combine_finish;
+    LARGE_INTEGER phase8_frequency;
+
+    (void)kem_profile_id;
+    QueryPerformanceFrequency(&phase8_frequency);
+    QueryPerformanceCounter(&provider_start);
+    qkd_provider_status provider_status = qkd_simulator_get_key(
+        &provider_pool, "phase8-demo-key-001", qkd_secret,
+        sizeof(qkd_secret), &qkd_secret_length);
+    QueryPerformanceCounter(&provider_finish);
+    printf("[PHASE8_METRIC] provider_lookup_ms: %.6f\n",
+           (double)(provider_finish.QuadPart - provider_start.QuadPart) *
+               1000.0 / (double)phase8_frequency.QuadPart);
+    if (provider_status != QKD_PROVIDER_OK) {
+        fprintf(stderr, "[PHASE8] QKD provider failed closed (status %d)\n",
+                (int)provider_status);
+        goto qkd_cleanup;
+    }
+    if (EVP_Digest(transcript, transcript_length, transcript_hash,
+                   &transcript_hash_length, EVP_sha384(), NULL) != 1 ||
+        transcript_hash_length != sizeof(transcript_hash)) {
+        fprintf(stderr, "[PHASE8] transcript hashing failed\n");
+        goto qkd_cleanup;
+    }
+
+    QueryPerformanceCounter(&combine_start);
+    result = qkd_derive_hybrid_key(
+        x25519_secret, 32, mlkem_secret, 32,
+        qkd_secret, qkd_secret_length,
+        transcript_hash, transcript_hash_length,
+        session_key, 32) ? 0 : -1;
+    QueryPerformanceCounter(&combine_finish);
+    printf("[PHASE8_METRIC] qkd_hkdf_combine_ms: %.6f\n",
+           (double)(combine_finish.QuadPart - combine_start.QuadPart) *
+               1000.0 / (double)phase8_frequency.QuadPart);
+    if (result == 0) {
+        printf("[PHASE8] QKD simulator key combined with X25519 + ML-KEM; not real QKD\n");
+    }
+
+qkd_cleanup:
+    OPENSSL_cleanse(qkd_secret, sizeof(qkd_secret));
+    OPENSSL_cleanse(transcript_hash, sizeof(transcript_hash));
+    return result;
+#else
     EVP_KDF *kdf = NULL;
     EVP_KDF_CTX *kdf_ctx = NULL;
 
@@ -249,8 +315,9 @@ static int derive_hybrid_session_key(
 
     const char *digest = "SHA384";
 
-    const unsigned char info[] =
-        "HybridPQC-X25519-MLKEM768-AES256GCM";
+    static const unsigned char info_prefix[] =
+        "HybridPQC-X25519-ML-KEM-AES256GCM-v2";
+    unsigned char info[sizeof(info_prefix)];
 
     OSSL_PARAM params[5];
 
@@ -267,6 +334,8 @@ static int derive_hybrid_session_key(
         mlkem_secret,
         32
     );
+    memcpy(info, info_prefix, sizeof(info_prefix) - 1);
+    info[sizeof(info_prefix) - 1] = kem_profile_id;
 
     kdf = EVP_KDF_fetch(
         NULL,
@@ -314,8 +383,8 @@ static int derive_hybrid_session_key(
 
     params[3] = OSSL_PARAM_construct_octet_string(
         OSSL_KDF_PARAM_INFO,
-        (void *)info,
-        sizeof(info) - 1
+        info,
+        sizeof(info)
     );
 
     params[4] = OSSL_PARAM_construct_end();
@@ -346,6 +415,7 @@ cleanup:
     );
 
     return result;
+#endif
 }
 
 
@@ -505,9 +575,12 @@ cleanup:
 
 static int build_auth_transcript(
     const unsigned char *client_x25519_public,
+    unsigned char kem_profile_id,
     const unsigned char *client_mlkem_public,
+    size_t client_mlkem_public_len,
     const unsigned char *server_x25519_public,
     const unsigned char *server_mlkem_ciphertext,
+    size_t server_mlkem_ciphertext_len,
     unsigned char *transcript,
     size_t *transcript_len)
 {
@@ -539,6 +612,8 @@ static int build_auth_transcript(
     transcript[offset++] =
         AUTH_ALG_MLDSA65;
 
+    transcript[offset++] = kem_profile_id;
+
     /*
      * Alice X25519 public key
      */
@@ -558,10 +633,10 @@ static int build_auth_transcript(
     memcpy(
         transcript + offset,
         client_mlkem_public,
-        MLKEM768_PUBLIC_KEY_SIZE
+        client_mlkem_public_len
     );
 
-    offset += MLKEM768_PUBLIC_KEY_SIZE;
+    offset += client_mlkem_public_len;
 
     /*
      * Bob X25519 public key
@@ -582,13 +657,33 @@ static int build_auth_transcript(
     memcpy(
         transcript + offset,
         server_mlkem_ciphertext,
-        MLKEM768_CIPHERTEXT_SIZE
+        server_mlkem_ciphertext_len
     );
 
-    offset += MLKEM768_CIPHERTEXT_SIZE;
+    offset += server_mlkem_ciphertext_len;
 
     *transcript_len = offset;
 
+    return 0;
+}
+
+static const char *kem_algorithm_for_profile(uint8_t profile_id)
+{
+    switch (profile_id)
+    {
+        case 1: return OQS_KEM_alg_ml_kem_512;
+        case 2: return OQS_KEM_alg_ml_kem_768;
+        case 3: return OQS_KEM_alg_ml_kem_1024;
+        default: return NULL;
+    }
+}
+
+static int parse_profile_id(const char *value, uint8_t *profile_id)
+{
+    if (strcmp(value, "512") == 0) *profile_id = 1;
+    else if (strcmp(value, "768") == 0) *profile_id = 2;
+    else if (strcmp(value, "1024") == 0) *profile_id = 3;
+    else return -1;
     return 0;
 }
 
@@ -675,7 +770,7 @@ static SOCKET create_server_socket(void)
    Main
    ============================================================ */
 
-int main(void)
+int main(int argc, char **argv)
 {
     WSADATA wsa_data;
 
@@ -687,6 +782,7 @@ int main(void)
         sizeof(client_address);
 
     OQS_SIG *sig = NULL;
+    OQS_KEM *kem = NULL;
 
     unsigned char *mldsa_secret_key = NULL;
 
@@ -699,7 +795,7 @@ int main(void)
     ];
 
     unsigned char client_mlkem_public[
-        MLKEM768_PUBLIC_KEY_SIZE
+        MLKEM_PUBLIC_KEY_SIZE
     ];
 
     unsigned char server_x25519_public[
@@ -707,7 +803,7 @@ int main(void)
     ];
 
     unsigned char server_mlkem_ciphertext[
-        MLKEM768_CIPHERTEXT_SIZE
+        MLKEM_CIPHERTEXT_SIZE
     ];
 
     unsigned char mlkem_shared_secret[
@@ -743,6 +839,7 @@ int main(void)
     unsigned char *encrypted_payload = NULL;
 
     uint32_t encrypted_payload_len = 0;
+    size_t client_hello_len = 0;
 
     uint8_t packet_type = 0;
 
@@ -759,6 +856,35 @@ int main(void)
     int result = EXIT_FAILURE;
 
     uint64_t expected_sequence = 0;
+    ULONG64 cpu_cycles_accept_start = 0;
+    ULONG64 cpu_cycles_key_ready = 0;
+    LARGE_INTEGER timer_frequency;
+    LARGE_INTEGER stage_start;
+    LARGE_INTEGER stage_finish;
+    uint8_t minimum_profile_id = PHASE6_KEM_PROFILE_ID;
+    size_t kem_public_key_len = 0;
+    size_t kem_ciphertext_len = 0;
+    size_t expected_server_hello_len = 0;
+
+#if defined(PHASE6_KEM_ADAPTIVE)
+    minimum_profile_id = 2;
+    if (argc == 3 && strcmp(argv[1], "--minimum") == 0)
+    {
+        if (parse_profile_id(argv[2], &minimum_profile_id) != 0)
+        {
+            fprintf(stderr, "Minimum profile must be 512, 768, or 1024.\n");
+            return EXIT_FAILURE;
+        }
+    }
+    else if (argc != 1)
+    {
+        fprintf(stderr, "Usage: server_auth_phase6_adaptive.exe [--minimum 512|768|1024]\n");
+        return EXIT_FAILURE;
+    }
+#else
+    (void)argc;
+    (void)argv;
+#endif
 
 
     /* ========================================================
@@ -774,6 +900,13 @@ int main(void)
             "WSAStartup failed\n"
         );
 
+        return EXIT_FAILURE;
+    }
+
+    if (!QueryPerformanceFrequency(&timer_frequency))
+    {
+        fprintf(stderr, "High-resolution performance counter unavailable\n");
+        WSACleanup();
         return EXIT_FAILURE;
     }
 
@@ -857,6 +990,35 @@ int main(void)
         "[+] Bob ML-DSA-65 identity loaded\n"
     );
 
+#ifdef PHASE5_PREWARM_CRYPTO
+    {
+        unsigned char warm_secret_a[32] = {0};
+        unsigned char warm_secret_b[32] = {0};
+        unsigned char warm_key[32];
+        EVP_PKEY *warm_x25519_key = generate_x25519_keypair();
+
+        if (warm_x25519_key == NULL ||
+            derive_hybrid_session_key(
+                warm_secret_a,
+                warm_secret_b,
+                PHASE6_KEM_PROFILE_ID,
+                warm_key) != 0)
+        {
+            EVP_PKEY_free(warm_x25519_key);
+            OPENSSL_cleanse(warm_secret_a, sizeof(warm_secret_a));
+            OPENSSL_cleanse(warm_secret_b, sizeof(warm_secret_b));
+            OPENSSL_cleanse(warm_key, sizeof(warm_key));
+            goto cleanup;
+        }
+
+        EVP_PKEY_free(warm_x25519_key);
+        OPENSSL_cleanse(warm_secret_a, sizeof(warm_secret_a));
+        OPENSSL_cleanse(warm_secret_b, sizeof(warm_secret_b));
+        OPENSSL_cleanse(warm_key, sizeof(warm_key));
+        printf("[PHASE5] OpenSSL X25519 and HKDF initialized before listening\n");
+    }
+#endif
+
 
     /* ========================================================
        Create TCP Server
@@ -883,6 +1045,14 @@ int main(void)
        Accept Alice
        ======================================================== */
 
+    if (!QueryThreadCycleTime(
+            GetCurrentThread(),
+            &cpu_cycles_accept_start))
+    {
+        fprintf(stderr, "Could not read server CPU cycle counter\n");
+        goto cleanup;
+    }
+
     client_socket = accept(
         server_socket,
         (struct sockaddr *)&client_address,
@@ -908,6 +1078,7 @@ int main(void)
        Receive CLIENT_HELLO
        ======================================================== */
 
+    QueryPerformanceCounter(&stage_start);
     if (recv_auth_packet(
             client_socket,
             &packet_type,
@@ -921,6 +1092,10 @@ int main(void)
 
         goto cleanup;
     }
+    QueryPerformanceCounter(&stage_finish);
+    printf("[PHASE5_STAGE] Receive CLIENT_HELLO: %.3f ms\n",
+           (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+               1000.0 / (double)timer_frequency.QuadPart);
 
     if (packet_type != PACKET_CLIENT_HELLO)
     {
@@ -933,7 +1108,7 @@ int main(void)
         goto cleanup;
     }
 
-    if (encrypted_payload_len != CLIENT_HELLO_SIZE)
+    if (encrypted_payload_len > sizeof(client_hello))
     {
         fprintf(
             stderr,
@@ -946,8 +1121,9 @@ int main(void)
     memcpy(
         client_hello,
         encrypted_payload,
-        CLIENT_HELLO_SIZE
+        encrypted_payload_len
     );
+    client_hello_len = encrypted_payload_len;
 
     free(encrypted_payload);
     encrypted_payload = NULL;
@@ -965,10 +1141,45 @@ int main(void)
         X25519_PUBLIC_KEY_SIZE
     );
 
+    uint8_t client_kem_profile_id =
+        client_hello[X25519_PUBLIC_KEY_SIZE];
+    if (client_kem_profile_id < minimum_profile_id ||
+        kem_algorithm_for_profile(client_kem_profile_id) == NULL)
+    {
+        fprintf(stderr, "Client selected ML-KEM profile %u below server policy or unsupported.\n",
+                client_kem_profile_id);
+        goto cleanup;
+    }
+
+#if !defined(PHASE6_KEM_ADAPTIVE)
+    if (client_kem_profile_id != PHASE6_KEM_PROFILE_ID)
+    {
+        fprintf(stderr, "Client requested a profile different from this server build.\n");
+        goto cleanup;
+    }
+#endif
+
+    kem = OQS_KEM_new(kem_algorithm_for_profile(client_kem_profile_id));
+    if (kem == NULL)
+    {
+        fprintf(stderr, "Failed to initialize the requested ML-KEM profile.\n");
+        goto cleanup;
+    }
+    kem_public_key_len = kem->length_public_key;
+    kem_ciphertext_len = kem->length_ciphertext;
+    if (client_hello_len !=
+        X25519_PUBLIC_KEY_SIZE + 1 + kem_public_key_len ||
+        kem_public_key_len > sizeof(client_mlkem_public) ||
+        kem_ciphertext_len > sizeof(server_mlkem_ciphertext))
+    {
+        fprintf(stderr, "CLIENT_HELLO length does not match its KEM profile.\n");
+        goto cleanup;
+    }
+
     memcpy(
         client_mlkem_public,
-        client_hello + X25519_PUBLIC_KEY_SIZE,
-        MLKEM768_PUBLIC_KEY_SIZE
+        client_hello + X25519_PUBLIC_KEY_SIZE + 1,
+        kem_public_key_len
     );
 
     printf(
@@ -976,7 +1187,7 @@ int main(void)
     );
 
     printf(
-        "[+] Received Alice's ML-KEM-768 public key\n"
+        "[+] Received Alice's selected ML-KEM profile public key\n"
     );
 
 
@@ -984,8 +1195,13 @@ int main(void)
        Generate Bob's X25519 Key Pair
        ======================================================== */
 
+    QueryPerformanceCounter(&stage_start);
     server_x25519_key =
         generate_x25519_keypair();
+    QueryPerformanceCounter(&stage_finish);
+    printf("[PHASE5_STAGE] X25519 key generation: %.3f ms\n",
+           (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+               1000.0 / (double)timer_frequency.QuadPart);
 
     if (server_x25519_key == NULL)
     {
@@ -1024,44 +1240,33 @@ int main(void)
 
 
     /* ========================================================
-       ML-KEM-768 Encapsulation
+       selected ML-KEM profile Encapsulation
        ======================================================== */
 
-    OQS_KEM *kem = OQS_KEM_new(
-        OQS_KEM_alg_ml_kem_768
-    );
-
-    if (kem == NULL)
-    {
-        fprintf(
-            stderr,
-            "Failed to initialize ML-KEM-768\n"
-        );
-
-        goto cleanup;
-    }
-
+    QueryPerformanceCounter(&stage_start);
     oqs_status = OQS_KEM_encaps(
         kem,
         server_mlkem_ciphertext,
         mlkem_shared_secret,
         client_mlkem_public
     );
-
-    OQS_KEM_free(kem);
+    QueryPerformanceCounter(&stage_finish);
+    printf("[PHASE5_STAGE] selected ML-KEM profile encapsulation: %.3f ms\n",
+           (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+               1000.0 / (double)timer_frequency.QuadPart);
 
     if (oqs_status != OQS_SUCCESS)
     {
         fprintf(
             stderr,
-            "ML-KEM-768 encapsulation failed\n"
+            "selected ML-KEM profile encapsulation failed\n"
         );
 
         goto cleanup;
     }
 
     printf(
-        "[+] ML-KEM-768 encapsulation successful\n"
+        "[+] selected ML-KEM profile encapsulation successful\n"
     );
 
 
@@ -1071,9 +1276,12 @@ int main(void)
 
     if (build_auth_transcript(
             client_x25519_public,
+            client_kem_profile_id,
             client_mlkem_public,
+            kem_public_key_len,
             server_x25519_public,
             server_mlkem_ciphertext,
+            kem_ciphertext_len,
             transcript,
             &transcript_len) != 0)
     {
@@ -1085,7 +1293,9 @@ int main(void)
         goto cleanup;
     }
 
-    if (transcript_len != AUTH_TRANSCRIPT_SIZE)
+    if (transcript_len != AUTH_DOMAIN_SEPARATOR_SIZE + 3 +
+            X25519_PUBLIC_KEY_SIZE + kem_public_key_len +
+            X25519_PUBLIC_KEY_SIZE + kem_ciphertext_len)
     {
         fprintf(
             stderr,
@@ -1106,6 +1316,7 @@ int main(void)
        ML-DSA-65 Signature
        ======================================================== */
 
+    QueryPerformanceCounter(&stage_start);
     oqs_status = OQS_SIG_sign(
         sig,
         signature,
@@ -1114,6 +1325,10 @@ int main(void)
         transcript_len,
         mldsa_secret_key
     );
+    QueryPerformanceCounter(&stage_finish);
+    printf("[PHASE5_STAGE] ML-DSA-65 signing: %.3f ms\n",
+           (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+               1000.0 / (double)timer_frequency.QuadPart);
 
     if (oqs_status != OQS_SUCCESS)
     {
@@ -1158,17 +1373,20 @@ int main(void)
     server_hello_offset +=
         X25519_PUBLIC_KEY_SIZE;
 
+    server_hello[server_hello_offset++] =
+        client_kem_profile_id;
+
 
     /* ML-KEM ciphertext */
 
     memcpy(
         server_hello + server_hello_offset,
         server_mlkem_ciphertext,
-        MLKEM768_CIPHERTEXT_SIZE
+        kem_ciphertext_len
     );
 
     server_hello_offset +=
-        MLKEM768_CIPHERTEXT_SIZE;
+        kem_ciphertext_len;
 
 
     /* Authentication algorithm */
@@ -1205,8 +1423,10 @@ int main(void)
     server_hello_offset += signature_len;
 
 
-    if (server_hello_offset !=
-        SERVER_HELLO_AUTH_SIZE)
+    expected_server_hello_len = X25519_PUBLIC_KEY_SIZE + 1 +
+        kem_ciphertext_len + 1 + AUTH_SIGNATURE_LENGTH_SIZE + signature_len;
+    if (server_hello_offset != expected_server_hello_len ||
+        server_hello_offset > sizeof(server_hello))
     {
         fprintf(
             stderr,
@@ -1222,6 +1442,7 @@ int main(void)
        Send SERVER_HELLO
        ======================================================== */
 
+    QueryPerformanceCounter(&stage_start);
     if (send_auth_packet(
             client_socket,
             PACKET_SERVER_HELLO,
@@ -1235,6 +1456,10 @@ int main(void)
 
         goto cleanup;
     }
+    QueryPerformanceCounter(&stage_finish);
+    printf("[PHASE5_STAGE] Send SERVER_HELLO: %.3f ms\n",
+           (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+               1000.0 / (double)timer_frequency.QuadPart);
 
     printf(
         "[+] Authenticated SERVER_HELLO sent\n"
@@ -1245,6 +1470,7 @@ int main(void)
        Derive X25519 Shared Secret
        ======================================================== */
 
+    QueryPerformanceCounter(&stage_start);
     if (derive_x25519_shared_secret(
             server_x25519_key,
             client_x25519_public,
@@ -1252,6 +1478,10 @@ int main(void)
     {
         goto cleanup;
     }
+    QueryPerformanceCounter(&stage_finish);
+    printf("[PHASE5_STAGE] X25519 shared-secret derivation: %.3f ms\n",
+           (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+               1000.0 / (double)timer_frequency.QuadPart);
 
     printf(
         "[+] X25519 shared secret derived\n"
@@ -1262,17 +1492,37 @@ int main(void)
        Derive Hybrid Session Key
        ======================================================== */
 
+    QueryPerformanceCounter(&stage_start);
     if (derive_hybrid_session_key(
             x25519_shared_secret,
             mlkem_shared_secret,
+            client_kem_profile_id,
+#ifdef PHASE8_QKD_SIMULATOR
+            transcript,
+            transcript_len,
+#endif
             hybrid_session_key) != 0)
     {
+        goto cleanup;
+    }
+    QueryPerformanceCounter(&stage_finish);
+    printf("[PHASE5_STAGE] HKDF-SHA-384: %.3f ms\n",
+           (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+               1000.0 / (double)timer_frequency.QuadPart);
+
+    if (!QueryThreadCycleTime(
+            GetCurrentThread(),
+            &cpu_cycles_key_ready))
+    {
+        fprintf(stderr, "Could not read server CPU cycle counter\n");
         goto cleanup;
     }
 
     printf(
         "[+] Hybrid session key derived\n"
     );
+    printf("[PHASE5] Server main-thread cycles from accept through key ready: %llu\n",
+           (unsigned long long)(cpu_cycles_key_ready - cpu_cycles_accept_start));
 
 
     /* ========================================================
@@ -1282,6 +1532,13 @@ int main(void)
     printf("\n");
     printf("===============================================\n");
     printf("       PHASE 4.6 FIXED REPLAY TEST\n");
+#if defined(PHASE6_KEM_ADAPTIVE)
+    printf("[PHASE6] Adaptive KEM support; minimum profile ID %u\n",
+           minimum_profile_id);
+#else
+    printf("[PHASE6] Supported KEM profile: %s (ID %u)\n",
+           PHASE6_KEM_ALGORITHM, PHASE6_KEM_PROFILE_ID);
+#endif
     printf("===============================================\n");
     printf("[+] Replay protection enabled.\n");
     printf("[+] Expected sequence starts at 0.\n");
@@ -1357,6 +1614,29 @@ int main(void)
          */
         if (received_sequence != expected_sequence)
         {
+#ifdef PHASE8_QKD_SIMULATOR
+            {
+                static const unsigned char confirm_label[] =
+                    "HybridPQC-Phase8-Replay-Rejected-v1";
+                unsigned char confirm_payload[REPLAY_RESULT_PAYLOAD_SIZE];
+                unsigned int confirm_mac_len = 0;
+
+                confirm_payload[0] = 1;
+                if (HMAC(EVP_sha384(), hybrid_session_key,
+                         sizeof(hybrid_session_key), confirm_label,
+                         sizeof(confirm_label) - 1, confirm_payload + 1,
+                         &confirm_mac_len) == NULL || confirm_mac_len != 48 ||
+                    send_auth_packet(client_socket, PACKET_REPLAY_RESULT,
+                                     confirm_payload,
+                                     sizeof(confirm_payload)) != 0) {
+                    OPENSSL_cleanse(confirm_payload, sizeof(confirm_payload));
+                    result = EXIT_FAILURE;
+                    goto cleanup;
+                }
+                OPENSSL_cleanse(confirm_payload, sizeof(confirm_payload));
+                printf("[PHASE8] Authenticated replay rejection result sent\n");
+            }
+#endif
             printf("\n");
             printf("===============================================\n");
             printf("       PHASE 4.6 SECURITY TEST: PASS\n");
@@ -1457,7 +1737,7 @@ int main(void)
     );
 
     printf(
-        "Hybrid X25519 + ML-KEM-768: SUCCESS\n"
+        "Hybrid X25519 + selected ML-KEM profile: SUCCESS\n"
     );
 
     printf(
@@ -1472,6 +1752,22 @@ int main(void)
 
 
 cleanup:
+
+    {
+        PROCESS_MEMORY_COUNTERS_EX memory_counters;
+        memset(&memory_counters, 0, sizeof(memory_counters));
+        memory_counters.cb = sizeof(memory_counters);
+        if (GetProcessMemoryInfo(
+                GetCurrentProcess(),
+                (PROCESS_MEMORY_COUNTERS *)&memory_counters,
+                sizeof(memory_counters)))
+        {
+            printf("[PHASE5] Server peak working set: %llu bytes\n",
+                   (unsigned long long)memory_counters.PeakWorkingSetSize);
+            printf("[PHASE5] Server private usage: %llu bytes\n",
+                   (unsigned long long)memory_counters.PrivateUsage);
+        }
+    }
 
     if (encrypted_payload != NULL)
     {
@@ -1533,6 +1829,11 @@ cleanup:
         plaintext,
         sizeof(plaintext)
     );
+
+    if (kem != NULL)
+    {
+        OQS_KEM_free(kem);
+    }
 
     if (sig != NULL)
     {

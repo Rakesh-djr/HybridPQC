@@ -1,0 +1,6 @@
+"scenario","profile","runs","mean_handshake_ms","median_handshake_ms","sd_ms","all_handshakes_completed","all_replay_checks_passed"
+"bandwidth512kbps","ML-KEM-768","3","176.439","173.468","54.843","True","True"
+"bandwidth512kbps_policy","ML-KEM-512","3","106.621","108.360","4.029","True","True"
+"baseline","ML-KEM-768","3","13.913","13.339","1.799","True","True"
+"lossstall100ms","ML-KEM-768","3","225.238","228.705","6.227","True","True"
+"rtt80ms","ML-KEM-768","3","114.973","114.508","2.947","True","True"

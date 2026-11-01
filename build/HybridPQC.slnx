@@ -19,17 +19,37 @@
 		<BuildDependency Project="client_auth_phase4_5.vcxproj"/>
 		<BuildDependency Project="client_auth_phase4_6.vcxproj"/>
 		<BuildDependency Project="client_auth_phase4_6_fixed.vcxproj"/>
+		<BuildDependency Project="client_auth_phase6_1024.vcxproj"/>
+		<BuildDependency Project="client_auth_phase6_512.vcxproj"/>
+		<BuildDependency Project="client_auth_phase6_768.vcxproj"/>
+		<BuildDependency Project="client_auth_phase6_adaptive.vcxproj"/>
+		<BuildDependency Project="client_auth_phase8_qkd.vcxproj"/>
 		<BuildDependency Project="generate_fake_identity.vcxproj"/>
 		<BuildDependency Project="generate_identity.vcxproj"/>
 		<BuildDependency Project="hybrid_secure_channel.vcxproj"/>
 		<BuildDependency Project="hybrid_test.vcxproj"/>
 		<BuildDependency Project="mlkem_test.vcxproj"/>
+		<BuildDependency Project="phase6_crypto_policy.vcxproj"/>
+		<BuildDependency Project="phase6_policy_demo.vcxproj"/>
+		<BuildDependency Project="phase8_qkd_demo.vcxproj"/>
+		<BuildDependency Project="primitive_benchmark.vcxproj"/>
 		<BuildDependency Project="protocol.vcxproj"/>
 		<BuildDependency Project="protocol_auth.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_1024.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_512.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_768.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_adaptive.vcxproj"/>
 		<BuildDependency Project="server.vcxproj"/>
 		<BuildDependency Project="server_auth.vcxproj"/>
 		<BuildDependency Project="server_auth_phase4_6.vcxproj"/>
 		<BuildDependency Project="server_auth_phase4_6_fixed.vcxproj"/>
+		<BuildDependency Project="server_auth_phase4_6_warmup.vcxproj"/>
+		<BuildDependency Project="server_auth_phase6_1024.vcxproj"/>
+		<BuildDependency Project="server_auth_phase6_512.vcxproj"/>
+		<BuildDependency Project="server_auth_phase6_768.vcxproj"/>
+		<BuildDependency Project="server_auth_phase6_adaptive.vcxproj"/>
+		<BuildDependency Project="server_auth_phase7_backend.vcxproj"/>
+		<BuildDependency Project="server_auth_phase8_qkd.vcxproj"/>
 		<BuildDependency Project="signature_test.vcxproj"/>
 		<BuildDependency Project="x25519_test.vcxproj"/>
 		<Build Solution="Debug|*" Project="false"/>
@@ -75,7 +95,29 @@
 	</Project>
 	<Project Path="client_auth_phase4_6_fixed.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="aa7abd16-4706-3a39-9f0f-5f023ba84b75">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
-		<BuildDependency Project="protocol_auth.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_768.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase6_1024.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="eb92de9c-2eec-3aac-8175-847d702df2ef">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_1024.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase6_512.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c14d7e27-07af-36cb-8ab1-8e472d1debe5">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_512.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase6_768.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="3c5bcb90-31e3-343b-afce-18bc086a5717">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_768.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase6_adaptive.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="678ae14c-4633-38c7-ab29-5f24ba22f81a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="phase6_crypto_policy.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_adaptive.vcxproj"/>
+	</Project>
+	<Project Path="client_auth_phase8_qkd.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="9b37160c-cef8-3ddc-bf4f-76e986bbb28a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="phase6_crypto_policy.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_adaptive.vcxproj"/>
 	</Project>
 	<Project Path="generate_fake_identity.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="a953d715-aab9-32d2-af9b-5c8ad0363955">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
@@ -92,10 +134,35 @@
 	<Project Path="mlkem_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d010649b-5311-31da-a647-792da8eba5c0">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 	</Project>
+	<Project Path="phase6_crypto_policy.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6afa4990-2f18-37e1-b475-9345981276c2">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="phase6_policy_demo.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="e9fc81eb-9e2f-395d-b980-756feba8c55a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="phase6_crypto_policy.vcxproj"/>
+	</Project>
+	<Project Path="phase8_qkd_demo.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="7f1db156-1c3a-31cd-a9cf-6803e4895985">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="primitive_benchmark.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="8659f6cb-9562-3a39-8a2d-aeec35dc4049">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
 	<Project Path="protocol.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="913bead0-073a-340f-90a0-9df2062dfe3d">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 	</Project>
 	<Project Path="protocol_auth.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="f4aa5cd2-9152-3288-9f5b-1c4861a4df66">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="protocol_auth_phase6_1024.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="ac1dea22-c7e0-3544-96e9-d28ac022f3c6">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="protocol_auth_phase6_512.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d11f563e-d251-32a5-b17f-52d4f7d6e77b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="protocol_auth_phase6_768.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="536fecb5-cc0b-3b4a-bf80-659542f7151a">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+	</Project>
+	<Project Path="protocol_auth_phase6_adaptive.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="fc81583b-e107-3ba6-9bff-bf2904322cac">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
 	</Project>
 	<Project Path="server.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="94892b35-7ad4-33c3-8b5d-d4ee13d00f20">
@@ -112,7 +179,35 @@
 	</Project>
 	<Project Path="server_auth_phase4_6_fixed.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="87efec47-e06f-39e7-982f-8cffdd853245">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
-		<BuildDependency Project="protocol_auth.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_768.vcxproj"/>
+	</Project>
+	<Project Path="server_auth_phase4_6_warmup.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6b80574c-a6cb-36f3-b038-09c5ddecf67b">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_768.vcxproj"/>
+	</Project>
+	<Project Path="server_auth_phase6_1024.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="6290d364-3111-3866-b4d3-a6227df59282">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_1024.vcxproj"/>
+	</Project>
+	<Project Path="server_auth_phase6_512.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="bf96676a-c535-366a-ba77-5048d840549c">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_512.vcxproj"/>
+	</Project>
+	<Project Path="server_auth_phase6_768.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="af114482-89ee-3587-be87-65e6853640de">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_768.vcxproj"/>
+	</Project>
+	<Project Path="server_auth_phase6_adaptive.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="d4acef76-7f6f-3cbf-8f2f-d1e663f62bd4">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_adaptive.vcxproj"/>
+	</Project>
+	<Project Path="server_auth_phase7_backend.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="847fa003-d1f9-3642-a38e-4d16b81949c1">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_adaptive.vcxproj"/>
+	</Project>
+	<Project Path="server_auth_phase8_qkd.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="342370a3-d62b-3f00-b21c-7b923fc6cda3">
+		<BuildDependency Project="ZERO_CHECK.vcxproj"/>
+		<BuildDependency Project="protocol_auth_phase6_adaptive.vcxproj"/>
 	</Project>
 	<Project Path="signature_test.vcxproj" Type="8bc9ceb8-8b4a-11d0-8d11-00a0c91bc942" Id="c2f216bf-45c3-3244-8896-c7895d827141">
 		<BuildDependency Project="ZERO_CHECK.vcxproj"/>

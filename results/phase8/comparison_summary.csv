@@ -1,0 +1,3 @@
+condition,trials,successful_trials,selected_profile_counts,handshake_median_ms,handshake_mean_ms,handshake_sample_sd_ms,client_hkdf_median_ms,provider_lookup_median_ms,qkd_hkdf_combine_median_ms
+baseline,20,20,ML-KEM-512:0;ML-KEM-768:20;ML-KEM-1024:0,8.8795,9.9504,2.4461506473383205,0.361,,
+qkd_simulator,20,20,ML-KEM-512:0;ML-KEM-768:20;ML-KEM-1024:0,8.8995,10.0363,2.5805516158575985,0.3475,0.00785,0.1399

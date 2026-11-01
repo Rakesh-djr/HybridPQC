@@ -14,7 +14,15 @@
    Protocol Version
    ============================================================ */
 
+#if defined(PHASE6_CRYPTO_AGILITY)
+#define HYBRID_AUTH_PROTOCOL_VERSION 2
+#define AUTH_DOMAIN_SEPARATOR "HybridPQC-Authenticated-Handshake-v2"
+#define PHASE6_PROFILE_ID_FIELD_SIZE 1
+#else
 #define HYBRID_AUTH_PROTOCOL_VERSION 1
+#define AUTH_DOMAIN_SEPARATOR "HybridPQC-Authenticated-Handshake-v1"
+#define PHASE6_PROFILE_ID_FIELD_SIZE 0
+#endif
 
 
 /* ============================================================
@@ -24,7 +32,34 @@
 /* X25519 */
 #define X25519_PUBLIC_KEY_SIZE 32
 
-/* ML-KEM-768 */
+/* Phase 6 KEM profile. Build client and server with the same profile. */
+#if defined(PHASE6_KEM_ADAPTIVE)
+#define PHASE6_KEM_ALGORITHM "runtime-selected"
+#define PHASE6_KEM_PROFILE_ID 0
+#define MLKEM_PUBLIC_KEY_SIZE 1568
+#define MLKEM_SECRET_KEY_SIZE 3168
+#define MLKEM_CIPHERTEXT_SIZE 1568
+#elif defined(PHASE6_KEM_512)
+#define PHASE6_KEM_ALGORITHM "ML-KEM-512"
+#define PHASE6_KEM_PROFILE_ID 1
+#define MLKEM_PUBLIC_KEY_SIZE 800
+#define MLKEM_SECRET_KEY_SIZE 1632
+#define MLKEM_CIPHERTEXT_SIZE 768
+#elif defined(PHASE6_KEM_1024)
+#define PHASE6_KEM_ALGORITHM "ML-KEM-1024"
+#define PHASE6_KEM_PROFILE_ID 3
+#define MLKEM_PUBLIC_KEY_SIZE 1568
+#define MLKEM_SECRET_KEY_SIZE 3168
+#define MLKEM_CIPHERTEXT_SIZE 1568
+#else
+#define PHASE6_KEM_ALGORITHM "ML-KEM-768"
+#define PHASE6_KEM_PROFILE_ID 2
+#define MLKEM_PUBLIC_KEY_SIZE 1184
+#define MLKEM_SECRET_KEY_SIZE 2400
+#define MLKEM_CIPHERTEXT_SIZE 1088
+#endif
+
+/* Compatibility constants used by the earlier fixed ML-KEM-768 examples. */
 #define MLKEM768_PUBLIC_KEY_SIZE 1184
 #define MLKEM768_CIPHERTEXT_SIZE 1088
 
@@ -72,7 +107,9 @@
 
 #define PACKET_CLIENT_HELLO       1
 #define PACKET_SERVER_HELLO       2
+#define PACKET_REPLAY_RESULT      3
 #define PACKET_ENCRYPTED_MESSAGE  4
+#define REPLAY_RESULT_PAYLOAD_SIZE 49
 
 
 /* ============================================================
@@ -84,11 +121,14 @@
  *
  * X25519 public key
  * +
- * ML-KEM-768 public key
+ * KEM profile ID
+ * ML-KEM public key
  */
 
 #define CLIENT_HELLO_SIZE \
-    (X25519_PUBLIC_KEY_SIZE + MLKEM768_PUBLIC_KEY_SIZE)
+    (X25519_PUBLIC_KEY_SIZE + \
+     PHASE6_PROFILE_ID_FIELD_SIZE + \
+     MLKEM_PUBLIC_KEY_SIZE)
 
 
 /*
@@ -96,7 +136,9 @@
  *
  * X25519 public key
  * +
- * ML-KEM-768 ciphertext
+ * KEM profile ID
+ * +
+ * ML-KEM ciphertext
  * +
  * authentication algorithm ID
  * +
@@ -111,7 +153,8 @@
 
 #define SERVER_HELLO_AUTH_SIZE \
     (X25519_PUBLIC_KEY_SIZE + \
-     MLKEM768_CIPHERTEXT_SIZE + \
+     PHASE6_PROFILE_ID_FIELD_SIZE + \
+     MLKEM_CIPHERTEXT_SIZE + \
      1 + \
      AUTH_SIGNATURE_LENGTH_SIZE + \
      MLDSA65_SIGNATURE_SIZE)
@@ -127,9 +170,6 @@
  * protocol or message type.
  */
 
-#define AUTH_DOMAIN_SEPARATOR \
-    "HybridPQC-Authenticated-Handshake-v1"
-
 #define AUTH_DOMAIN_SEPARATOR_SIZE \
     (sizeof(AUTH_DOMAIN_SEPARATOR) - 1)
 
@@ -140,6 +180,7 @@
  * Domain separator
  * Protocol version
  * Authentication algorithm
+ * KEM profile ID
  * CLIENT_HELLO:
  *   - Alice X25519 public key
  *   - Alice ML-KEM public key
@@ -154,10 +195,23 @@
     (AUTH_DOMAIN_SEPARATOR_SIZE + \
      1 + \
      1 + \
+     PHASE6_PROFILE_ID_FIELD_SIZE + \
      X25519_PUBLIC_KEY_SIZE + \
-     MLKEM768_PUBLIC_KEY_SIZE + \
+     MLKEM_PUBLIC_KEY_SIZE + \
      X25519_PUBLIC_KEY_SIZE + \
-     MLKEM768_CIPHERTEXT_SIZE)
+     MLKEM_CIPHERTEXT_SIZE)
+
+#define MLKEM_PUBLIC_KEY_MAX_SIZE 1568
+#define MLKEM_SECRET_KEY_MAX_SIZE 3168
+#define MLKEM_CIPHERTEXT_MAX_SIZE 1568
+#define CLIENT_HELLO_MAX_SIZE \
+    (X25519_PUBLIC_KEY_SIZE + 1 + MLKEM_PUBLIC_KEY_MAX_SIZE)
+#define SERVER_HELLO_AUTH_MAX_SIZE \
+    (X25519_PUBLIC_KEY_SIZE + 1 + MLKEM_CIPHERTEXT_MAX_SIZE + 1 + \
+     AUTH_SIGNATURE_LENGTH_SIZE + MLDSA65_SIGNATURE_SIZE)
+#define AUTH_TRANSCRIPT_MAX_SIZE \
+    (AUTH_DOMAIN_SEPARATOR_SIZE + 3 + 2 * X25519_PUBLIC_KEY_SIZE + \
+     MLKEM_PUBLIC_KEY_MAX_SIZE + MLKEM_CIPHERTEXT_MAX_SIZE)
 
 
 /* ============================================================

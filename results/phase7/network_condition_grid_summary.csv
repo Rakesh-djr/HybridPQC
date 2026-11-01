@@ -1,0 +1,7 @@
+scenario,profiles_selected,runs,mean_handshake_ms,median_handshake_ms,sample_sd_ms,all_handshakes_completed,all_replay_checks_passed
+rtt40ms,ML-KEM-768,3,66.226,61.990,11.897,True,True
+rtt160ms,ML-KEM-768,3,192.343,187.670,15.625,True,True
+bandwidth256_default,ML-KEM-768,3,206.286,206.258,2.330,True,True
+bandwidth256_policy,ML-KEM-512,3,181.404,183.563,5.097,True,True
+bandwidth2048_policy,ML-KEM-512,3,45.268,44.003,4.857,True,True
+bandwidth100000_policy,ML-KEM-768,3,34.960,34.528,0.925,True,True

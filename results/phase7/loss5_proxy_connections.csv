@@ -1,0 +1,4 @@
+timestamp_utc,connection_id,rtt_ms,bandwidth_kbps_per_direction,loss_event_percent,loss_recovery_ms,loss_holds,client_to_server_bytes,server_to_client_bytes,duration_ms
+2026-10-31T20:19:43.676083+00:00,1,0.0,0.0,0.0,200.0,0,1097,4119,27.578
+2026-10-31T20:20:18.398980+00:00,1,0.0,0.0,0.0,200.0,0,1097,4119,17.663
+2026-10-31T20:20:27.332701+00:00,1,0.0,0.0,0.0,200.0,0,1097,4119,53.402

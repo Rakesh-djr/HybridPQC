@@ -1,0 +1,12 @@
+
+===============================================
+   AUTHENTICATED HYBRID PQC SERVER
+===============================================
+
+[+] Bob ML-DSA-65 identity loaded
+[+] Server listening on TCP port 5555
+[+] Waiting for Alice...
+[+] Alice connected
+[PHASE5_STAGE] Receive CLIENT_HELLO: 0.013 ms
+[PHASE5] Server peak working set: 7016448 bytes
+[PHASE5] Server private usage: 2371584 bytes

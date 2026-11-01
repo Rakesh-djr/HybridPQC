@@ -1,0 +1,11 @@
+run_id,fixed_profile,client_exit_code,hello_to_key_ms,client_complete,server_replay_rejected,client_log,server_log
+1,ML-KEM-768,0,16.782,True,True,results\phase7\real_loss_fixed768_01_client.log,results\phase7\real_loss_fixed768_01_server.log
+2,ML-KEM-768,0,339.056,True,True,results\phase7\real_loss_fixed768_02_client.log,results\phase7\real_loss_fixed768_02_server.log
+3,ML-KEM-768,0,318.538,True,True,results\phase7\real_loss_fixed768_03_client.log,results\phase7\real_loss_fixed768_03_server.log
+4,ML-KEM-768,0,20.976,True,True,results\phase7\real_loss_fixed768_04_client.log,results\phase7\real_loss_fixed768_04_server.log
+5,ML-KEM-768,0,15.189,True,True,results\phase7\real_loss_fixed768_05_client.log,results\phase7\real_loss_fixed768_05_server.log
+6,ML-KEM-768,0,16.703,True,True,results\phase7\real_loss_fixed768_06_client.log,results\phase7\real_loss_fixed768_06_server.log
+7,ML-KEM-768,0,34.999,True,True,results\phase7\real_loss_fixed768_07_client.log,results\phase7\real_loss_fixed768_07_server.log
+8,ML-KEM-768,0,18.710,True,True,results\phase7\real_loss_fixed768_08_client.log,results\phase7\real_loss_fixed768_08_server.log
+9,ML-KEM-768,0,20.964,True,True,results\phase7\real_loss_fixed768_09_client.log,results\phase7\real_loss_fixed768_09_server.log
+10,ML-KEM-768,0,18.761,True,True,results\phase7\real_loss_fixed768_10_client.log,results\phase7\real_loss_fixed768_10_server.log

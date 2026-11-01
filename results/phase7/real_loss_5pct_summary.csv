@@ -1,0 +1,5 @@
+condition,trials,successful_client_and_server_checks,median_handshake_ms,mean_handshake_ms,sample_sd_ms,max_handshake_ms,trials_over_200ms,configured_loss_pct,scope_effective_loss_pct,scope_packets_seen,scope_packets_dropped,scope_target,scope_destination
+Adaptive (selected ML-KEM-768),10,10,19.934,83.952,128.424,333.860,2,5.0,5.35,355,19,12332,127.0.0.1:5556
+Fixed ML-KEM-512,10,10,21.063,22.336,7.138,33.665,0,5.0,5.35,355,19,12332,127.0.0.1:5556
+Fixed ML-KEM-768,10,10,19.862,82.068,130.244,339.056,2,5.0,5.35,355,19,12332,127.0.0.1:5556
+Fixed ML-KEM-1024,10,10,29.843,162.414,327.049,1051.087,2,5.0,5.35,355,19,12332,127.0.0.1:5556

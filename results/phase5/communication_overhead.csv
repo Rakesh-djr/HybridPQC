@@ -1,0 +1,5 @@
+message,direction,payload_bytes,framing_bytes,application_protocol_bytes,notes
+CLIENT_HELLO,client-to-server,1216,6,1222,"32-byte X25519 public key plus 1184-byte ML-KEM-768 public key"
+SERVER_HELLO,server-to-client,4432,6,4438,"32-byte X25519 public key plus 1088-byte ML-KEM ciphertext plus 1-byte auth ID plus 2-byte signature length plus 3309-byte ML-DSA-65 signature"
+Handshake total,bidirectional,5648,12,5660,"Sum of the two protocol messages; excludes TCP/IP/link headers, ACKs, and retransmissions"
+Encrypted application message,client-to-server,"plaintext_bytes + 36",6,"plaintext_bytes + 42","8-byte sequence plus 12-byte nonce plus ciphertext plus 16-byte GCM tag; ciphertext length equals plaintext length"

@@ -1,0 +1,54 @@
+
+===============================================
+   AUTHENTICATED HYBRID PQC SERVER
+===============================================
+
+[+] Bob ML-DSA-65 identity loaded
+[+] Server listening on TCP port 5556
+[+] Waiting for Alice...
+[+] Alice connected
+[PHASE5_STAGE] Receive CLIENT_HELLO: 0.016 ms
+[+] Received Alice's X25519 public key
+[+] Received Alice's selected ML-KEM profile public key
+[PHASE5_STAGE] X25519 key generation: 6.990 ms
+[+] Bob X25519 key pair generated
+[PHASE5_STAGE] selected ML-KEM profile encapsulation: 0.410 ms
+[+] selected ML-KEM profile encapsulation successful
+[+] Authentication transcript created: 3239 bytes
+[PHASE5_STAGE] ML-DSA-65 signing: 0.587 ms
+[+] ML-DSA-65 handshake signature created
+[PHASE5_STAGE] Send SERVER_HELLO: 0.105 ms
+[+] Authenticated SERVER_HELLO sent
+[PHASE5_STAGE] X25519 shared-secret derivation: 0.133 ms
+[+] X25519 shared secret derived
+[PHASE5_STAGE] HKDF-SHA-384: 0.331 ms
+[+] Hybrid session key derived
+[PHASE5] Server main-thread cycles from accept through key ready: 24459566
+
+===============================================
+       PHASE 4.6 FIXED REPLAY TEST
+[PHASE6] Adaptive KEM support; minimum profile ID 1
+===============================================
+[+] Replay protection enabled.
+[+] Expected sequence starts at 0.
+[+] Received packet with sequence 0.
+[+] Expected sequence: 0.
+[+] Sequence 0 accepted and authenticated.
+[+] Message authentication succeeded.
+[+] Advancing expected sequence to 1.
+[TEST] Waiting for replayed packet...
+[+] Received packet with sequence 0.
+[+] Expected sequence: 1.
+
+===============================================
+       PHASE 4.6 SECURITY TEST: PASS
+===============================================
+[+] REPLAY DETECTED
+[+] Received sequence: 0
+[+] Expected sequence: 1
+[+] Stale/out-of-order packet rejected before decryption.
+[+] Replay protection is active.
+RESULT: REPLAY PROTECTION VERIFIED
+===============================================
+[PHASE5] Server peak working set: 9998336 bytes
+[PHASE5] Server private usage: 2949120 bytes

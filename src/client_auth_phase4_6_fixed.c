@@ -1,6 +1,10 @@
 #define _CRT_SECURE_NO_WARNINGS
 
 #include "protocol_auth.h"
+#include "crypto_policy.h"
+#ifdef PHASE8_QKD_SIMULATOR
+#include "qkd_key_provider.h"
+#endif
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -8,6 +12,8 @@
 
 #include <winsock2.h>
 #include <ws2tcpip.h>
+#include <windows.h>
+#include <psapi.h>
 
 #include <oqs/oqs.h>
 
@@ -16,9 +22,12 @@
 #include <openssl/kdf.h>
 #include <openssl/core_names.h>
 #include <openssl/err.h>
+#include <openssl/hmac.h>
 
 #define SERVER_IP "127.0.0.1"
+#ifndef SERVER_PORT
 #define SERVER_PORT 5555
+#endif
 
 #define SERVER_MLDSA_PUBLIC_KEY_FILE \
     "C:\\HybridPQC\\keys\\server_mldsa_public.key"
@@ -268,8 +277,65 @@ cleanup:
 static int derive_hybrid_session_key(
     const unsigned char *x25519_secret,
     const unsigned char *mlkem_secret,
+    uint8_t kem_profile_id,
+#ifdef PHASE8_QKD_SIMULATOR
+    const unsigned char *transcript,
+    size_t transcript_length,
+#endif
     unsigned char *session_key)
 {
+#ifdef PHASE8_QKD_SIMULATOR
+    static qkd_simulator_pool provider_pool = {0};
+    unsigned char qkd_secret[QKD_KEY_BYTES] = {0};
+    unsigned char transcript_hash[48] = {0};
+    unsigned int transcript_hash_length = 0;
+    size_t qkd_secret_length = 0;
+    int result = -1;
+    LARGE_INTEGER provider_start, provider_finish;
+    LARGE_INTEGER combine_start, combine_finish;
+    LARGE_INTEGER phase8_frequency;
+
+    (void)kem_profile_id;
+    QueryPerformanceFrequency(&phase8_frequency);
+    QueryPerformanceCounter(&provider_start);
+    qkd_provider_status provider_status = qkd_simulator_get_key(
+        &provider_pool, "phase8-demo-key-001", qkd_secret,
+        sizeof(qkd_secret), &qkd_secret_length);
+    QueryPerformanceCounter(&provider_finish);
+    printf("[PHASE8_METRIC] provider_lookup_ms: %.6f\n",
+           (double)(provider_finish.QuadPart - provider_start.QuadPart) *
+               1000.0 / (double)phase8_frequency.QuadPart);
+    if (provider_status != QKD_PROVIDER_OK) {
+        fprintf(stderr, "[PHASE8] QKD provider failed closed (status %d)\n",
+                (int)provider_status);
+        goto qkd_cleanup;
+    }
+    if (EVP_Digest(transcript, transcript_length, transcript_hash,
+                   &transcript_hash_length, EVP_sha384(), NULL) != 1 ||
+        transcript_hash_length != sizeof(transcript_hash)) {
+        fprintf(stderr, "[PHASE8] transcript hashing failed\n");
+        goto qkd_cleanup;
+    }
+
+    QueryPerformanceCounter(&combine_start);
+    result = qkd_derive_hybrid_key(
+        x25519_secret, 32, mlkem_secret, 32,
+        qkd_secret, qkd_secret_length,
+        transcript_hash, transcript_hash_length,
+        session_key, 32) ? 0 : -1;
+    QueryPerformanceCounter(&combine_finish);
+    printf("[PHASE8_METRIC] qkd_hkdf_combine_ms: %.6f\n",
+           (double)(combine_finish.QuadPart - combine_start.QuadPart) *
+               1000.0 / (double)phase8_frequency.QuadPart);
+    if (result == 0) {
+        printf("[PHASE8] QKD simulator key combined with X25519 + ML-KEM; not real QKD\n");
+    }
+
+qkd_cleanup:
+    OPENSSL_cleanse(qkd_secret, sizeof(qkd_secret));
+    OPENSSL_cleanse(transcript_hash, sizeof(transcript_hash));
+    return result;
+#else
     EVP_KDF *kdf = NULL;
     EVP_KDF_CTX *kdf_ctx = NULL;
 
@@ -277,8 +343,9 @@ static int derive_hybrid_session_key(
 
     const char *digest = "SHA384";
 
-    const unsigned char info[] =
-        "HybridPQC-X25519-MLKEM768-AES256GCM";
+    static const unsigned char info_prefix[] =
+        "HybridPQC-X25519-ML-KEM-AES256GCM-v2";
+    unsigned char info[sizeof(info_prefix)];
 
     OSSL_PARAM params[5];
 
@@ -295,6 +362,8 @@ static int derive_hybrid_session_key(
         mlkem_secret,
         32
     );
+    memcpy(info, info_prefix, sizeof(info_prefix) - 1);
+    info[sizeof(info_prefix) - 1] = kem_profile_id;
 
     kdf = EVP_KDF_fetch(
         NULL,
@@ -346,8 +415,8 @@ static int derive_hybrid_session_key(
     params[3] =
         OSSL_PARAM_construct_octet_string(
             OSSL_KDF_PARAM_INFO,
-            (void *)info,
-            sizeof(info) - 1
+            info,
+            sizeof(info)
         );
 
     params[4] =
@@ -379,6 +448,7 @@ cleanup:
     );
 
     return result;
+#endif
 }
 
 
@@ -612,9 +682,12 @@ static void encode_u64_be(uint64_t value, unsigned char out[8])
 
 static int build_auth_transcript(
     const unsigned char *client_x25519_public,
+    unsigned char kem_profile_id,
     const unsigned char *client_mlkem_public,
+    size_t client_mlkem_public_len,
     const unsigned char *server_x25519_public,
     const unsigned char *server_mlkem_ciphertext,
+    size_t server_mlkem_ciphertext_len,
     unsigned char *transcript,
     size_t *transcript_len)
 {
@@ -634,6 +707,8 @@ static int build_auth_transcript(
     transcript[offset++] =
         AUTH_ALG_MLDSA65;
 
+    transcript[offset++] = kem_profile_id;
+
     memcpy(
         transcript + offset,
         client_x25519_public,
@@ -645,10 +720,10 @@ static int build_auth_transcript(
     memcpy(
         transcript + offset,
         client_mlkem_public,
-        MLKEM768_PUBLIC_KEY_SIZE
+        client_mlkem_public_len
     );
 
-    offset += MLKEM768_PUBLIC_KEY_SIZE;
+    offset += client_mlkem_public_len;
 
     memcpy(
         transcript + offset,
@@ -661,14 +736,82 @@ static int build_auth_transcript(
     memcpy(
         transcript + offset,
         server_mlkem_ciphertext,
-        MLKEM768_CIPHERTEXT_SIZE
+        server_mlkem_ciphertext_len
     );
 
-    offset += MLKEM768_CIPHERTEXT_SIZE;
+    offset += server_mlkem_ciphertext_len;
 
     *transcript_len = offset;
 
     return 0;
+}
+
+static const char *kem_algorithm_for_profile(uint8_t profile_id)
+{
+    switch (profile_id)
+    {
+        case 1: return OQS_KEM_alg_ml_kem_512;
+        case 2: return OQS_KEM_alg_ml_kem_768;
+        case 3: return OQS_KEM_alg_ml_kem_1024;
+        default: return NULL;
+    }
+}
+
+static int parse_profile_id(const char *value, uint8_t *profile_id)
+{
+    if (strcmp(value, "512") == 0) *profile_id = 1;
+    else if (strcmp(value, "768") == 0) *profile_id = 2;
+    else if (strcmp(value, "1024") == 0) *profile_id = 3;
+    else return -1;
+    return 0;
+}
+
+static int select_runtime_profile(
+    int argc,
+    char **argv,
+    Phase6PolicyChoice *choice)
+{
+    Phase6PolicyInput input = {
+        2, 0, 0.0, PHASE6_OBJECTIVE_LATENCY
+    };
+    int i;
+
+    for (i = 1; i < argc; i++)
+    {
+        char *end = NULL;
+        if (i + 1 >= argc) return -1;
+        if (strcmp(argv[i], "--minimum") == 0)
+        {
+            if (parse_profile_id(argv[++i], &input.minimum_profile_id) != 0)
+                return -1;
+        }
+        else if (strcmp(argv[i], "--bandwidth-kbps") == 0)
+        {
+            unsigned long value = strtoul(argv[++i], &end, 10);
+            if (end == argv[i] || *end != '\0' || value == 0 ||
+                value > UINT32_MAX) return -1;
+            input.bandwidth_kbps = (uint32_t)value;
+        }
+        else if (strcmp(argv[i], "--max-handshake-ms") == 0)
+        {
+            double value = strtod(argv[++i], &end);
+            if (end == argv[i] || *end != '\0' || value <= 0.0)
+                return -1;
+            input.maximum_handshake_ms = value;
+        }
+        else if (strcmp(argv[i], "--objective") == 0)
+        {
+            const char *objective = argv[++i];
+            if (strcmp(objective, "latency") == 0)
+                input.objective = PHASE6_OBJECTIVE_LATENCY;
+            else if (strcmp(objective, "bandwidth") == 0)
+                input.objective = PHASE6_OBJECTIVE_BANDWIDTH;
+            else return -1;
+        }
+        else return -1;
+    }
+
+    return phase6_policy_select(&input, choice);
 }
 
 
@@ -748,7 +891,7 @@ static SOCKET connect_to_server(void)
    Main
    ============================================================ */
 
-int main(void)
+int main(int argc, char **argv)
 {
     WSADATA wsa_data;
 
@@ -768,11 +911,11 @@ int main(void)
     ];
 
     unsigned char client_mlkem_public[
-        MLKEM768_PUBLIC_KEY_SIZE
+        MLKEM_PUBLIC_KEY_SIZE
     ];
 
     unsigned char client_mlkem_secret_key[
-        2400
+        MLKEM_SECRET_KEY_SIZE
     ];
 
     unsigned char server_x25519_public[
@@ -780,7 +923,7 @@ int main(void)
     ];
 
     unsigned char server_mlkem_ciphertext[
-        MLKEM768_CIPHERTEXT_SIZE
+        MLKEM_CIPHERTEXT_SIZE
     ];
 
     unsigned char mlkem_shared_secret[
@@ -805,6 +948,10 @@ int main(void)
 
     uint32_t server_hello_len = 0;
 
+    unsigned char *replay_result_payload = NULL;
+
+    uint32_t replay_result_payload_len = 0;
+
     uint8_t packet_type = 0;
 
     unsigned char client_hello[
@@ -816,6 +963,13 @@ int main(void)
     ];
 
     size_t signature_len = 0;
+    size_t kem_public_key_len = 0;
+    size_t kem_secret_key_len = 0;
+    size_t kem_ciphertext_len = 0;
+    size_t client_hello_len = 0;
+    uint8_t selected_kem_profile_id = PHASE6_KEM_PROFILE_ID;
+    const char *selected_kem_algorithm = PHASE6_KEM_ALGORITHM;
+    Phase6PolicyChoice policy_choice;
 
     unsigned char nonce[
         GCM_NONCE_SIZE
@@ -844,6 +998,35 @@ int main(void)
         "Authenticated Hybrid Post-Quantum Cryptography.";
 
     int result = EXIT_FAILURE;
+    double tcp_connect_ms;
+    double hello_to_key_ms;
+    LARGE_INTEGER timer_frequency;
+    LARGE_INTEGER connect_start;
+    LARGE_INTEGER connect_finish;
+    LARGE_INTEGER hello_start;
+    LARGE_INTEGER key_ready;
+    ULONG64 cpu_cycles_start = 0;
+    ULONG64 cpu_cycles_key_ready = 0;
+
+#if defined(PHASE6_KEM_ADAPTIVE)
+    if (select_runtime_profile(argc, argv, &policy_choice) != 0)
+    {
+        fprintf(stderr, "Invalid policy or no profile meets its constraints.\n");
+        fprintf(stderr, "Use --minimum 512|768|1024, optional --bandwidth-kbps N, "
+                        "--max-handshake-ms N, --objective latency|bandwidth.\n");
+        return EXIT_FAILURE;
+    }
+    selected_kem_profile_id = policy_choice.profile.profile_id;
+    selected_kem_algorithm = kem_algorithm_for_profile(selected_kem_profile_id);
+    if (selected_kem_algorithm == NULL)
+    {
+        fprintf(stderr, "Policy returned an unsupported KEM profile.\n");
+        return EXIT_FAILURE;
+    }
+#else
+    (void)argc;
+    (void)argv;
+#endif
 
 
     /* ========================================================
@@ -862,11 +1045,26 @@ int main(void)
         return EXIT_FAILURE;
     }
 
+    if (!QueryPerformanceFrequency(&timer_frequency))
+    {
+        fprintf(stderr, "High-resolution performance counter unavailable\n");
+        WSACleanup();
+        return EXIT_FAILURE;
+    }
+
 
     printf("\n");
     printf("===============================================\n");
     printf("   PHASE 4.5 AES-GCM SECURITY TEST CLIENT\n");
     printf("===============================================\n");
+#if defined(PHASE6_KEM_ADAPTIVE)
+    printf("[PHASE6_POLICY] Selected %s (ID %u), estimated handshake %.3f ms\n",
+           selected_kem_algorithm, selected_kem_profile_id,
+           policy_choice.estimated_handshake_ms);
+#else
+    printf("[PHASE6] Selected KEM profile: %s (ID %u)\n",
+           selected_kem_algorithm, selected_kem_profile_id);
+#endif
     printf("\n");
 
 
@@ -892,16 +1090,27 @@ int main(void)
        ======================================================== */
 
     kem = OQS_KEM_new(
-        OQS_KEM_alg_ml_kem_768
+        selected_kem_algorithm
     );
 
     if (kem == NULL)
     {
         fprintf(
             stderr,
-            "Failed to initialize ML-KEM-768\n"
+            "Failed to initialize selected ML-KEM profile\n"
         );
 
+        goto cleanup;
+    }
+
+    kem_public_key_len = kem->length_public_key;
+    kem_secret_key_len = kem->length_secret_key;
+    kem_ciphertext_len = kem->length_ciphertext;
+    if (kem_public_key_len > sizeof(client_mlkem_public) ||
+        kem_secret_key_len > sizeof(client_mlkem_secret_key) ||
+        kem_ciphertext_len > sizeof(server_mlkem_ciphertext))
+    {
+        fprintf(stderr, "Selected KEM profile exceeds local buffer capacity.\n");
         goto cleanup;
     }
 
@@ -971,7 +1180,7 @@ int main(void)
 
 
     /* ========================================================
-       Generate Alice ML-KEM-768 Key Pair
+       Generate Alice selected ML-KEM profile Key Pair
        ======================================================== */
 
     if (OQS_KEM_keypair(
@@ -981,14 +1190,14 @@ int main(void)
     {
         fprintf(
             stderr,
-            "ML-KEM-768 key generation failed\n"
+            "selected ML-KEM profile key generation failed\n"
         );
 
         goto cleanup;
     }
 
     printf(
-        "[+] Alice ML-KEM-768 key pair generated\n"
+        "[+] Alice selected ML-KEM profile key pair generated\n"
     );
 
 
@@ -1002,19 +1211,32 @@ int main(void)
         X25519_PUBLIC_KEY_SIZE
     );
 
+    client_hello[X25519_PUBLIC_KEY_SIZE] =
+        selected_kem_profile_id;
+
     memcpy(
-        client_hello + X25519_PUBLIC_KEY_SIZE,
+        client_hello + X25519_PUBLIC_KEY_SIZE + 1,
         client_mlkem_public,
-        MLKEM768_PUBLIC_KEY_SIZE
+        kem_public_key_len
     );
+    client_hello_len = X25519_PUBLIC_KEY_SIZE + 1 + kem_public_key_len;
 
 
     /* ========================================================
        Connect to Bob
        ======================================================== */
 
+    QueryPerformanceCounter(&connect_start);
+    if (!QueryThreadCycleTime(GetCurrentThread(), &cpu_cycles_start))
+    {
+        fprintf(stderr, "Could not read client CPU cycle counter\n");
+        goto cleanup;
+    }
+
     socket_fd =
         connect_to_server();
+
+    QueryPerformanceCounter(&connect_finish);
 
     if (socket_fd == INVALID_SOCKET)
     {
@@ -1030,11 +1252,13 @@ int main(void)
        Send CLIENT_HELLO
        ======================================================== */
 
+    QueryPerformanceCounter(&hello_start);
+
     if (send_auth_packet(
             socket_fd,
             PACKET_CLIENT_HELLO,
             client_hello,
-            CLIENT_HELLO_SIZE) != 0)
+            (uint32_t)client_hello_len) != 0)
     {
         fprintf(
             stderr,
@@ -1042,6 +1266,14 @@ int main(void)
         );
 
         goto cleanup;
+    }
+
+    {
+        LARGE_INTEGER stage_finish;
+        QueryPerformanceCounter(&stage_finish);
+        printf("[PHASE5_STAGE] Send CLIENT_HELLO: %.3f ms\n",
+               (double)(stage_finish.QuadPart - hello_start.QuadPart) *
+                   1000.0 / (double)timer_frequency.QuadPart);
     }
 
     printf(
@@ -1053,18 +1285,23 @@ int main(void)
        Receive SERVER_HELLO
        ======================================================== */
 
-    if (recv_auth_packet(
+    {
+        LARGE_INTEGER receive_start;
+        LARGE_INTEGER receive_finish;
+        QueryPerformanceCounter(&receive_start);
+        if (recv_auth_packet(
             socket_fd,
             &packet_type,
             &server_hello,
             &server_hello_len) != 0)
-    {
-        fprintf(
-            stderr,
-            "Failed to receive SERVER_HELLO\n"
-        );
-
-        goto cleanup;
+        {
+            fprintf(stderr, "Failed to receive SERVER_HELLO\n");
+            goto cleanup;
+        }
+        QueryPerformanceCounter(&receive_finish);
+        printf("[PHASE5_STAGE] Receive SERVER_HELLO: %.3f ms\n",
+               (double)(receive_finish.QuadPart - receive_start.QuadPart) *
+                   1000.0 / (double)timer_frequency.QuadPart);
     }
 
     if (packet_type !=
@@ -1079,8 +1316,7 @@ int main(void)
         goto cleanup;
     }
 
-    if (server_hello_len !=
-        SERVER_HELLO_AUTH_SIZE)
+    if (server_hello_len > SERVER_HELLO_AUTH_MAX_SIZE)
     {
         fprintf(
             stderr,
@@ -1110,13 +1346,21 @@ int main(void)
 
     offset += X25519_PUBLIC_KEY_SIZE;
 
+    uint8_t server_kem_profile_id = server_hello[offset++];
+    if (server_kem_profile_id != selected_kem_profile_id)
+    {
+        fprintf(stderr, "Server selected an unexpected ML-KEM profile: %u\n",
+                server_kem_profile_id);
+        goto cleanup;
+    }
+
     memcpy(
         server_mlkem_ciphertext,
         server_hello + offset,
-        MLKEM768_CIPHERTEXT_SIZE
+        kem_ciphertext_len
     );
 
-    offset += MLKEM768_CIPHERTEXT_SIZE;
+    offset += kem_ciphertext_len;
 
     uint8_t auth_algorithm =
         server_hello[offset++];
@@ -1167,8 +1411,7 @@ int main(void)
 
     offset += signature_len;
 
-    if (offset !=
-        SERVER_HELLO_AUTH_SIZE)
+    if (offset != server_hello_len)
     {
         fprintf(
             stderr,
@@ -1189,9 +1432,12 @@ int main(void)
 
     if (build_auth_transcript(
             client_x25519_public,
+            server_kem_profile_id,
             client_mlkem_public,
+            kem_public_key_len,
             server_x25519_public,
             server_mlkem_ciphertext,
+            kem_ciphertext_len,
             transcript,
             &transcript_len) != 0)
     {
@@ -1203,8 +1449,9 @@ int main(void)
         goto cleanup;
     }
 
-    if (transcript_len !=
-        AUTH_TRANSCRIPT_SIZE)
+    if (transcript_len != AUTH_DOMAIN_SEPARATOR_SIZE + 3 +
+            X25519_PUBLIC_KEY_SIZE + kem_public_key_len +
+            X25519_PUBLIC_KEY_SIZE + kem_ciphertext_len)
     {
         fprintf(
             stderr,
@@ -1225,7 +1472,11 @@ int main(void)
 
     OQS_STATUS verify_status;
 
-    verify_status =
+    {
+        LARGE_INTEGER stage_start;
+        LARGE_INTEGER stage_finish;
+        QueryPerformanceCounter(&stage_start);
+        verify_status =
         OQS_SIG_verify(
             sig,
             transcript,
@@ -1234,6 +1485,11 @@ int main(void)
             signature_len,
             server_mldsa_public_key
         );
+        QueryPerformanceCounter(&stage_finish);
+        printf("[PHASE5_STAGE] ML-DSA-65 verification: %.3f ms\n",
+               (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+                   1000.0 / (double)timer_frequency.QuadPart);
+    }
 
     if (verify_status !=
         OQS_SUCCESS)
@@ -1285,22 +1541,29 @@ int main(void)
        ML-KEM Decapsulation
        ======================================================== */
 
-    if (OQS_KEM_decaps(
+    {
+        LARGE_INTEGER stage_start;
+        LARGE_INTEGER stage_finish;
+        OQS_STATUS decaps_status;
+        QueryPerformanceCounter(&stage_start);
+        decaps_status = OQS_KEM_decaps(
             kem,
             mlkem_shared_secret,
             server_mlkem_ciphertext,
-            client_mlkem_secret_key) != OQS_SUCCESS)
-    {
-        fprintf(
-            stderr,
-            "ML-KEM-768 decapsulation failed\n"
-        );
-
-        goto cleanup;
+            client_mlkem_secret_key);
+        QueryPerformanceCounter(&stage_finish);
+        printf("[PHASE5_STAGE] selected ML-KEM profile decapsulation: %.3f ms\n",
+               (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+                   1000.0 / (double)timer_frequency.QuadPart);
+        if (decaps_status != OQS_SUCCESS)
+        {
+            fprintf(stderr, "selected ML-KEM profile decapsulation failed\n");
+            goto cleanup;
+        }
     }
 
     printf(
-        "[+] ML-KEM-768 shared secret derived\n"
+        "[+] selected ML-KEM profile shared secret derived\n"
     );
 
 
@@ -1308,12 +1571,23 @@ int main(void)
        X25519 Shared Secret
        ======================================================== */
 
-    if (derive_x25519_shared_secret(
+    {
+        LARGE_INTEGER stage_start;
+        LARGE_INTEGER stage_finish;
+        int derive_status;
+        QueryPerformanceCounter(&stage_start);
+        derive_status = derive_x25519_shared_secret(
             client_x25519_key,
             server_x25519_public,
-            x25519_shared_secret) != 0)
-    {
-        goto cleanup;
+            x25519_shared_secret);
+        QueryPerformanceCounter(&stage_finish);
+        printf("[PHASE5_STAGE] X25519 shared-secret derivation: %.3f ms\n",
+               (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+                   1000.0 / (double)timer_frequency.QuadPart);
+        if (derive_status != 0)
+        {
+            goto cleanup;
+        }
     }
 
     printf(
@@ -1325,17 +1599,56 @@ int main(void)
        Hybrid Session Key
        ======================================================== */
 
-    if (derive_hybrid_session_key(
+    {
+        LARGE_INTEGER stage_start;
+        LARGE_INTEGER stage_finish;
+        int hkdf_status;
+        QueryPerformanceCounter(&stage_start);
+        hkdf_status = derive_hybrid_session_key(
             x25519_shared_secret,
             mlkem_shared_secret,
-            hybrid_session_key) != 0)
+            selected_kem_profile_id,
+#ifdef PHASE8_QKD_SIMULATOR
+            transcript,
+            transcript_len,
+#endif
+            hybrid_session_key);
+        QueryPerformanceCounter(&stage_finish);
+        printf("[PHASE5_STAGE] HKDF-SHA-384: %.3f ms\n",
+               (double)(stage_finish.QuadPart - stage_start.QuadPart) *
+                   1000.0 / (double)timer_frequency.QuadPart);
+        if (hkdf_status != 0)
+        {
+            goto cleanup;
+        }
+    }
+
+    QueryPerformanceCounter(&key_ready);
+    if (!QueryThreadCycleTime(GetCurrentThread(), &cpu_cycles_key_ready))
     {
+        fprintf(stderr, "Could not read client CPU cycle counter\n");
         goto cleanup;
     }
+
+    tcp_connect_ms =
+        (double)(connect_finish.QuadPart - connect_start.QuadPart) *
+        1000.0 / (double)timer_frequency.QuadPart;
+    hello_to_key_ms =
+        (double)(key_ready.QuadPart - hello_start.QuadPart) *
+        1000.0 / (double)timer_frequency.QuadPart;
 
     printf(
         "[+] Hybrid session key derived\n"
     );
+
+    printf("[PHASE5] TCP connect latency: %.3f ms\n",
+           tcp_connect_ms);
+    printf("[PHASE5] CLIENT_HELLO send through authenticated session-key ready: %.3f ms\n",
+           hello_to_key_ms);
+    printf("[PHASE5] TCP connect plus authenticated handshake: %.3f ms\n",
+           tcp_connect_ms + hello_to_key_ms);
+    printf("[PHASE5] Client main-thread cycles during connect and handshake: %llu\n",
+           (unsigned long long)(cpu_cycles_key_ready - cpu_cycles_start));
 
 
     /* ========================================================
@@ -1447,8 +1760,39 @@ int main(void)
         goto cleanup;
     }
 
+#ifdef PHASE8_QKD_SIMULATOR
+    {
+        static const unsigned char confirm_label[] =
+            "HybridPQC-Phase8-Replay-Rejected-v1";
+        unsigned char expected_mac[EVP_MAX_MD_SIZE];
+        unsigned int expected_mac_len = 0;
+
+        if (recv_auth_packet(socket_fd, &packet_type,
+                             &replay_result_payload,
+                             &replay_result_payload_len) != 0 ||
+            packet_type != PACKET_REPLAY_RESULT ||
+            replay_result_payload_len != REPLAY_RESULT_PAYLOAD_SIZE ||
+            replay_result_payload[0] != 1 ||
+            HMAC(EVP_sha384(), hybrid_session_key,
+                 sizeof(hybrid_session_key), confirm_label,
+                 sizeof(confirm_label) - 1,
+                 expected_mac, &expected_mac_len) == NULL ||
+            expected_mac_len != 48 ||
+            CRYPTO_memcmp(replay_result_payload + 1,
+                          expected_mac, expected_mac_len) != 0) {
+            fprintf(stderr, "[PHASE8] Missing or invalid authenticated replay result\n");
+            OPENSSL_cleanse(expected_mac, sizeof(expected_mac));
+            goto cleanup;
+        }
+        OPENSSL_cleanse(expected_mac, sizeof(expected_mac));
+        printf("[PHASE8] Server authenticated replay rejection confirmed\n");
+    }
+#endif
+
     printf("[!] Replay packet was transmitted over TCP.\n");
+#ifndef PHASE8_QKD_SIMULATOR
     printf("[!] Check server output: sequence 0 must be rejected as stale.\n");
+#endif
 
     printf("\n");
     printf("===============================================\n");
@@ -1457,7 +1801,11 @@ int main(void)
     printf("[+] Sequence number authenticated as GCM AAD.\n");
     printf("[+] Original sequence: 0\n");
     printf("[+] Exact replay sequence: 0\n");
+#ifdef PHASE8_QKD_SIMULATOR
+    printf("[+] Server's session-key HMAC confirms sequence 0 was rejected as stale.\n");
+#else
     printf("[+] Definitive PASS is confirmed by the server rejecting sequence 0 as stale.\n");
+#endif
     printf("===============================================\n");
 
     /* The server-side freshness check provides the definitive PASS. */
@@ -1466,10 +1814,32 @@ int main(void)
 
 cleanup:
 
+    {
+        PROCESS_MEMORY_COUNTERS_EX memory_counters;
+        memset(&memory_counters, 0, sizeof(memory_counters));
+        memory_counters.cb = sizeof(memory_counters);
+        if (GetProcessMemoryInfo(
+                GetCurrentProcess(),
+                (PROCESS_MEMORY_COUNTERS *)&memory_counters,
+                sizeof(memory_counters)))
+        {
+            printf("[PHASE5] Client peak working set: %llu bytes\n",
+                   (unsigned long long)memory_counters.PeakWorkingSetSize);
+            printf("[PHASE5] Client private usage: %llu bytes\n",
+                   (unsigned long long)memory_counters.PrivateUsage);
+        }
+    }
+
     if (server_hello != NULL)
     {
         free(server_hello);
         server_hello = NULL;
+    }
+
+    if (replay_result_payload != NULL)
+    {
+        free(replay_result_payload);
+        replay_result_payload = NULL;
     }
 
     if (socket_fd != INVALID_SOCKET)

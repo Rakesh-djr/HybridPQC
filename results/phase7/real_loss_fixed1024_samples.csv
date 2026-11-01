@@ -1,0 +1,11 @@
+run_id,fixed_profile,client_exit_code,hello_to_key_ms,client_complete,server_replay_rejected,client_log,server_log
+1,ML-KEM-1024,0,35.896,True,True,results\phase7\real_loss_fixed1024_01_client.log,results\phase7\real_loss_fixed1024_01_server.log
+2,ML-KEM-1024,0,33.645,True,True,results\phase7\real_loss_fixed1024_02_client.log,results\phase7\real_loss_fixed1024_02_server.log
+3,ML-KEM-1024,0,26.041,True,True,results\phase7\real_loss_fixed1024_03_client.log,results\phase7\real_loss_fixed1024_03_server.log
+4,ML-KEM-1024,0,1051.087,True,True,results\phase7\real_loss_fixed1024_04_client.log,results\phase7\real_loss_fixed1024_04_server.log
+5,ML-KEM-1024,0,334.980,True,True,results\phase7\real_loss_fixed1024_05_client.log,results\phase7\real_loss_fixed1024_05_server.log
+6,ML-KEM-1024,0,19.712,True,True,results\phase7\real_loss_fixed1024_06_client.log,results\phase7\real_loss_fixed1024_06_server.log
+7,ML-KEM-1024,0,14.031,True,True,results\phase7\real_loss_fixed1024_07_client.log,results\phase7\real_loss_fixed1024_07_server.log
+8,ML-KEM-1024,0,16.541,True,True,results\phase7\real_loss_fixed1024_08_client.log,results\phase7\real_loss_fixed1024_08_server.log
+9,ML-KEM-1024,0,70.872,True,True,results\phase7\real_loss_fixed1024_09_client.log,results\phase7\real_loss_fixed1024_09_server.log
+10,ML-KEM-1024,0,21.335,True,True,results\phase7\real_loss_fixed1024_10_client.log,results\phase7\real_loss_fixed1024_10_server.log

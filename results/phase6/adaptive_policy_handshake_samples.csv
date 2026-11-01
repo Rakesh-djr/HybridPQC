@@ -1,0 +1,5 @@
+"scenario","client_success","selected_profile","hello_to_key_ms","replay_protection_passed","server_rejection"
+"default","True","ML-KEM-768","11.932","True",""
+"bandwidth512","True","ML-KEM-512","8.108","True",""
+"minimum1024","True","ML-KEM-1024","7.643","True",""
+"floor_reject512","False","ML-KEM-512",,"False","Client selected ML-KEM profile 1 below server policy or unsupported."
